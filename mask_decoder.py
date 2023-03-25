@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from layers import MLP, DynamicLinear
+from layers import MLP
 from image_encoder import LayerNorm # FIXME: Put this in a better location
 
 
@@ -61,9 +61,6 @@ class MaskDecoder(nn.Module):
             )
         else:
             self.output_hypernetworks_mlps = None
-        self.output_hypernetworks = nn.ModuleList(
-            [DynamicLinear(transformer_dim // 8, 1) for i in range(num_outputs)]
-        )
 
         self.transformer_dim = transformer_dim
 
@@ -92,19 +89,24 @@ class MaskDecoder(nn.Module):
 
         src = src.transpose(1, 2).view(b, c, h, w)
         outputs_seg_masks = self.output_upscaling(src)
-        out_masks = []
-        for i in range(self.num_outputs):
-            hyper_in = hs[:, i + self.n_iou_token, :]
-            if self.output_hypernetworks_mlps is not None:
-                hyper_in = self.output_hypernetworks_mlps[i](hyper_in)
-            out_masks.append(
-                self.output_hypernetworks[i](
-                    outputs_seg_masks,
-                    hyper_in,
-                    force_no_chunk=False,
+        if self.output_hypernetworks_mlps is not None:
+            hyper_in = []
+            for i in range(self.num_outputs):
+                hyper_in.append(
+                    self.output_hypernetworks_mlps[i](hs[:, i+self.n_iou_token, :])
                 )
-            )
-        outputs_seg_masks = torch.cat(out_masks, dim=1)
+            hyper_in = torch.stack(hyper_in, dim=1)
+        else:
+            # TODO: Verify non-mlp model
+            hyper_in = hs[
+                :, 
+                self.n_iou_token : (self.n_iou_token + self.num_outputs), 
+                : outputs_seg_masks.shape[1]
+            ]
+        b, c, h, w = outputs_seg_masks.shape
+        outputs_seg_masks = (
+            hyper_in @ outputs_seg_masks.view(b, c, h * w)
+        ).view(b, -1, h, w) 
 
         # Select the dedicated slot or other slots if
         # dedicated_multiclick_slot = True
