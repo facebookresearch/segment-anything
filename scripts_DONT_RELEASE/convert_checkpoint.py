@@ -37,6 +37,8 @@ def main(args):
             continue
         if "backbone.net" in k:
             new_k = k.replace("backbone.net", "image_encoder")
+            if "fc" in new_k:
+                new_k = new_k.replace("fc", "lin")
         elif "backbone.simfp_4" in k:
             pieces = k.split(".")
             layer = int(pieces[2])

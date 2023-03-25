@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from common import MLPBlock, LayerNorm2d
 
 
 
@@ -95,7 +96,7 @@ class ImageEncoderViT(nn.Module):
                 kernel_size=1,
                 bias=False,
             ),
-            LayerNorm(out_chans),
+            LayerNorm2d(out_chans),
             nn.Conv2d(
                 out_chans,
                 out_chans,
@@ -103,7 +104,7 @@ class ImageEncoderViT(nn.Module):
                 padding=1,
                 bias=False,
             ),
-            LayerNorm(out_chans),
+            LayerNorm2d(out_chans),
         )
 
 
@@ -168,10 +169,9 @@ class Block(nn.Module):
         )
 
         self.norm2 = norm_layer(dim)
-        self.mlp = Mlp(
-            in_features=dim, 
-            hidden_features=int(dim * mlp_ratio), 
-            out_features=dim,
+        self.mlp = MLPBlock(
+            embedding_dim=dim, 
+            mlp_dim=int(dim * mlp_ratio), 
             act=act_layer
         )
 
@@ -248,35 +248,6 @@ class Attention(nn.Module):
         x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1, 4).reshape(B, H, W, -1)
         x = self.proj(x)
 
-        return x
-
-class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features, out_features, act=nn.GELU):
-        super().__init__()
-        self.fc1 = nn.Linear(in_features, hidden_features)
-        self.act = act()
-        self.fc2 = nn.Linear(hidden_features, out_features)
-
-    def forward(self, x):
-        return self.fc2(self.act(self.fc1(x)))
-
-class LayerNorm(nn.Module):
-    """
-    D2LayerNorm for BxCxHxW
-    """
-
-    def __init__(self, normalized_shape, eps=1e-6):
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(normalized_shape))
-        self.bias = nn.Parameter(torch.zeros(normalized_shape))
-        self.eps = eps
-        self.normalized_shape = (normalized_shape,)
-
-    def forward(self, x):
-        u = x.mean(1, keepdim=True)
-        s = (x - u).pow(2).mean(1, keepdim=True)
-        x = (x - u) / torch.sqrt(s + self.eps)
-        x = self.weight[:, None, None] * x + self.bias[:, None, None]
         return x
 
 def window_partition(x, window_size):

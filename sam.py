@@ -9,9 +9,8 @@ from torch.nn import functional as F
 
 from image_encoder import ImageEncoderViT
 from prompt_encoder import PromptEncoder
-from mask_decoder import MaskDecoder
+from mask_decoder import MaskDecoder, MLP
 from transformer import Transformer, TwoWayDecoderLayer
-from layers import MLP
 
 class Sam(nn.Module):
 

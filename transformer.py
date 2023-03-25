@@ -3,6 +3,7 @@ from typing import Optional
 
 import torch
 from torch import Tensor, nn
+from common import MLPBlock
 
 class Transformer(nn.Module):
     def __init__(
@@ -12,7 +13,7 @@ class Transformer(nn.Module):
         num_heads: int,
         mlp_dim: int,
         p_dropout: float,
-        activation: Optional[str] = "relu",
+        activation: nn.Module = nn.ReLU,
         pre_norm: Optional[bool] = False,
         add_pe_to_first_layer: bool = False,
         decoder_layer: Optional[nn.Module] = None,
@@ -329,34 +330,3 @@ class Attention(nn.Module):
         out = self.out_dropout(self.out_proj(out))
 
         return out
-
-
-class MLPBlock(nn.Module):
-    def __init__(
-        self,
-        embedding_dim: int,
-        mlp_dim: int,
-        activation: str,
-        p_dropout: float,
-    ) -> None:
-        """
-        A simple MLP block consisting of two linear layers, an activation
-        and dropout.
-        """
-
-        super().__init__()
-        self.lin1 = nn.Linear(embedding_dim, mlp_dim)
-        self.lin2 = nn.Linear(mlp_dim, embedding_dim)
-        self.act = self._get_act(activation)
-        self.dropout = nn.Dropout(p_dropout)
-
-    def _get_act(self, activation: str) -> nn.Module:
-        if activation == "relu":
-            return nn.ReLU()
-        elif activation == "gelu":
-            return nn.GELU()
-        else:
-            raise NotImplementedError(f"activation should be relu/gelu, not {activation}.")
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.lin2(self.dropout(self.act(self.lin1(x))))

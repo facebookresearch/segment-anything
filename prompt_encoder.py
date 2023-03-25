@@ -2,7 +2,7 @@ from typing import Tuple, Optional
 import numpy as np
 import torch
 from torch import nn
-from image_encoder import LayerNorm
+from common import LayerNorm2d
 
 
 
@@ -31,10 +31,10 @@ class PromptEncoder(nn.Module):
         self.mask_input_size = (4 * image_embedding_size[0], 4 * image_embedding_size[1])
         self.mask_downscaling = nn.Sequential(
             nn.Conv2d(1, mask_in_chans // 4, kernel_size=2, stride=2),
-            LayerNorm(mask_in_chans // 4),
+            LayerNorm2d(mask_in_chans // 4),
             activation(),
             nn.Conv2d(mask_in_chans // 4, mask_in_chans, kernel_size=2, stride=2),
-            LayerNorm(mask_in_chans),
+            LayerNorm2d(mask_in_chans),
             activation(),
             nn.Conv2d(mask_in_chans, embed_dim, kernel_size=1),
         )
