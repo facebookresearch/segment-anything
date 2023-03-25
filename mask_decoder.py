@@ -9,7 +9,7 @@ from layers import MLP, DynamicLinear, PositionEmbeddingRandom
 from image_encoder import LayerNorm # FIXME: Put this in a better location
 
 
-class InteractiveModule(nn.Module):
+class MaskDecoder(nn.Module):
     def __init__(
         self,
         *,

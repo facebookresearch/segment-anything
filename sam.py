@@ -8,7 +8,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from image_encoder import ImageEncoderViT
-from interactive_module import InteractiveModule
+from mask_decoder import MaskDecoder
 from transformer import Transformer, TwoWayDecoderLayer
 from layers import MLP
 
@@ -103,7 +103,7 @@ def build_sam():
             window_size=14,
             out_chans=256,
         ),
-        mask_decoder=InteractiveModule(
+        mask_decoder=MaskDecoder(
             add_mask_pred=True,
             dedicated_multiclick_slot=True,
             final_layer_hypernetwork_mlp=True,
