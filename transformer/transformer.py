@@ -15,7 +15,7 @@ class Transformer(nn.Module):
         activation: Optional[str] = "relu",
         pre_norm: Optional[bool] = False,
         add_pe_to_first_layer: bool = False,
-        decoder_layer: Optional[nn.Module] = DecoderLayer,
+        decoder_layer: Optional[nn.Module] = None,
         final_attention_by_clicks: bool = False,
         attention_downsample_rate: int = 2,
     ) -> None:
@@ -68,10 +68,7 @@ class Transformer(nn.Module):
         # FIXME: When pre_norm = False, layer norm is applied twice in
         # a row to the final output. Maintaining this behavior at the
         # moment for reproducability.
-        if decoder_layer is DecoderLayer:
-            self.final_norm = nn.LayerNorm(embedding_dim)
-        else:
-            self.final_norm = None
+        self.final_norm = None
 
         if final_attention_by_clicks:
             self.final_attn = Attention(

@@ -5,8 +5,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .layers import MLP, DynamicLinear, PositionEmbeddingRandom
-from .vit_backbone import LayerNorm # FIXME: Put this in a better location
+from layers import MLP, DynamicLinear, PositionEmbeddingRandom
+from image_encoder import LayerNorm # FIXME: Put this in a better location
 
 
 class InteractiveModule(nn.Module):
@@ -52,9 +52,7 @@ class InteractiveModule(nn.Module):
         self.point_embeddings = nn.ModuleList(point_embeddings)
         self.not_a_point_embed = nn.Embedding(1, transformer_dim)
 
-        self.n_iou_token = int(
-            slot_prediction_head is not None or iou_prediction_head is not None
-        )
+        self.n_iou_token = int(iou_prediction_head is not None)
         assert number_of_additional_tokens >= num_outputs + self.n_iou_token, (
             "With final_layer_hypernetwork, must have enough output tokens "
             "to support each mask prediction, as well as IoU/slot prediction."
@@ -100,19 +98,16 @@ class InteractiveModule(nn.Module):
     def forward(
         self,
         low_res_embeddings: torch.Tensor,
-        high_res_embeddings: torch.Tensor,
         point_coords: torch.Tensor,
         point_labels: torch.Tensor,
-        images_size: Tuple[int],
-        num_masks_per_image: List[int],
-        prev_iter_results: Optional[Dict[str, Any]],
+        mask_input: Optional[torch.Tensor],
         is_first_iter: bool = False,
     ) -> Dict[str, torch.Tensor]:
 
         # Generate positional embeddings
         pos = self.pe_layer(low_res_embeddings)
         # Ignore positional embedding for non-points
-        point_coords_pe = self.pe_layer.forward_with_coords(point_coords, images_size)
+        point_coords_pe = self.pe_layer._pe_encoding(point_coords)
         ignore_mask = point_labels == -1
         point_coords_pe[ignore_mask] = 0.0
 
@@ -134,24 +129,19 @@ class InteractiveModule(nn.Module):
         queries = queries.to(torch.float)  # Preserved from old version, maybe unncessary
 
         # Get prediction from last iteration
-        has_prev_pred = (prev_iter_results is not None) and (
-            "low_res_pred_masks" in prev_iter_results
-        )
+        has_prev_pred = (mask_input is not None)
         if self.add_mask_pred and has_prev_pred:
-            low_res_pred_masks = self.pred_downscaling(prev_iter_results["low_res_pred_masks"])
+            low_res_pred_masks = self.pred_downscaling(mask_input)
             no_pred_indicator = 0
         else:
             low_res_pred_masks = None
             no_pred_indicator = 1
 
         # Expand per-image data in batch direction to be per-mask
-        num_masks_per_image = torch.LongTensor(num_masks_per_image).to(pos.device)
+        # FIXME: handle num_masks_per_image better
+        num_masks_per_image = torch.LongTensor([point_coords.shape[0]]).to(pos.device)
         src = torch.repeat_interleave(low_res_embeddings, num_masks_per_image, dim=0)
         pos_src = torch.repeat_interleave(pos, num_masks_per_image, dim=0)
-        if not self.attention_based_prediction:
-            mask_features = torch.repeat_interleave(
-                high_res_embeddings, num_masks_per_image, dim=0
-            )
         b, c, h, w = src.shape
 
         if self.add_mask_pred:
@@ -162,8 +152,6 @@ class InteractiveModule(nn.Module):
 
         # Apply transformer, output is (deep supervision x B x N x C) (TODO: Check this)
         hs, src = self.transformer(src, pos_src, queries)
-        if not self.training and not self.attention_based_prediction:
-            del src, pos_src
 
         src = src.transpose(1, 2).view(b, c, h, w)
         outputs_seg_masks = self.output_upscaling(src)
@@ -191,25 +179,7 @@ class InteractiveModule(nn.Module):
             channel_slice = slice(None, None)
         outputs_seg_masks = outputs_seg_masks[:, channel_slice, :, :]
 
-        # Rescale to input image sizes
-        pred_masks = F.interpolate(
-            outputs_seg_masks,
-            size=images_size,
-            mode="bilinear",
-            align_corners=False,
-        )
+        iou_pred = self.iou_prediction_head(hs[:, 0, :])
 
         # Prepare output
-        out = {}
-        out["pred_masks"] = pred_masks
-        if self.hypernetwork is not None:
-            out["hypernetwork_loss"] = self.hypernetwork.get_loss(mask_embed)
-        if self.add_mask_pred:
-            out["for_next_iter"] = {"low_res_pred_masks": outputs_seg_masks}
-        else:
-            out["for_next_iter"] = {}  # Does not use results from previous iter
-
-        iou_pred = self.iou_prediction_head(hs[:, 0, :])
-        out["iou_prediction"] = iou_pred[:, channel_slice]
-
-        return out
+        return outputs_seg_masks, iou_pred[:, channel_slice]

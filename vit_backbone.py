@@ -362,6 +362,7 @@ class ViT(nn.Module):
         """
         super().__init__()
         self.pretrain_use_cls_token = pretrain_use_cls_token
+        self.img_size = img_size
 
         self.patch_embed = PatchEmbed(
             kernel_size=(patch_size, patch_size),
@@ -406,6 +407,6 @@ class ViT(nn.Module):
         for blk in self.blocks:
             x = blk(x)
 
-        return x.permute(0, 3, 1, 2)}
+        return x.permute(0, 3, 1, 2)
 
 

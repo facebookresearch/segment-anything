@@ -1,16 +1,22 @@
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-class MaskEncoder(nn.Module):
+
+class ImageEncoder(nn.Module):
 
     def __init__(
         self,
         backbone,
         backbone_out_channels,
         out_channels,
-        square_pad=0,
+        pixel_mean,
+        pixel_std,
     ):
-        super(MaskEncoder, self).__init__()
+        super(ImageEncoder, self).__init__()
         self.backbone = backbone
-        self.neck = nn.Sequential([
+        self.neck = nn.Sequential(
             nn.Conv2d(
                 backbone_out_channels, 
                 out_channels,
@@ -26,16 +32,32 @@ class MaskEncoder(nn.Module):
                 bias=False,
             ),
             LayerNorm(out_channels),
-        ])
-        self.square_pad = square_pad
+        )
+        self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
+        self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
 
     def preprocess(self, x):
-        """Get from InteractiveSegmentEverything."""
-        raise NotImplementedError
+        # Normalize colors
+        x = (x - self.pixel_mean) / self.pixel_std
+
+        # Pad
+        h, w = x.shape[2:]
+        padh = self.backbone.img_size - h
+        padw = self.backbone.img_size - w
+        x = F.pad(x, (0, padw, 0, padh))
+        return x
+
+    @staticmethod
+    def postprocess_masks(masks, input_image_h, input_image_w):
+        """
+        Reverses 'preprocess' on results masks. Here this just means
+        stripping padding.
+        """
+        return masks[..., :input_image_h, :input_image_w]
 
     def forward(self, x):
         x = self.preprocess(x)
-        x = self.net(x)
+        x = self.backbone(x)
         x = self.neck(x)
         return x
 
