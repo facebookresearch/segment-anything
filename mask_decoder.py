@@ -15,56 +15,51 @@ class MaskDecoder(nn.Module):
         *,
         transformer_dim: int,
         transformer: nn.Module,
-        iou_prediction_head: Optional[nn.Module] = None,
-        number_of_additional_tokens: Optional[int] = 5,
-        num_outputs: int = 1,
+        iou_prediction_head: nn.Module,
+        num_multimask_outputs: int = 1,
         final_layer_hypernetwork_mlp: bool = False,
         dedicated_multiclick_slot: bool = False,
         activation: Type[nn.Module] = nn.GELU,
+        num_extra_tokens: int = 0,
     ) -> None:
         super().__init__()
-
-        # Activation function for upscaling
-        self.activation = activation
-
-        self.dedicated_multiclick_slot = dedicated_multiclick_slot
-        if dedicated_multiclick_slot:
-            num_outputs += 1
-        self.num_outputs = num_outputs
-
-        # Transformer
+        self.transformer_dim = transformer_dim
         self.transformer = transformer
 
-        # Token embeddings (optim uses nn.Embedding detection to set WD to 0)
-        self.output_embed = nn.Embedding(number_of_additional_tokens, transformer_dim)
+        self.iou_prediction_head = iou_prediction_head
 
-        self.n_iou_token = int(iou_prediction_head is not None)
-        assert number_of_additional_tokens >= num_outputs + self.n_iou_token, (
-            "With final_layer_hypernetwork, must have enough output tokens "
-            "to support each mask prediction, as well as IoU/slot prediction."
+        self.dedicated_multiclick_slot = dedicated_multiclick_slot
+        self.num_multimask_outputs = num_multimask_outputs
+
+        self.iou_token = nn.Embedding(1, transformer_dim)
+        self.num_mask_tokens = int(dedicated_multiclick_slot) + num_multimask_outputs
+        self.mask_tokens = nn.Embedding(
+            self.num_mask_tokens, transformer_dim
         )
+        if num_extra_tokens > 0:
+            self.extra_tokens = nn.Embedding(number_of_additional_tokens, transformer_dim)
+        else:
+            self.extra_tokens = None
+
         self.output_upscaling = nn.Sequential(
             nn.ConvTranspose2d(transformer_dim, transformer_dim // 4, kernel_size=2, stride=2),
             LayerNorm(transformer_dim // 4),
-            self.activation(),
+            activation(),
             nn.ConvTranspose2d(
                 transformer_dim // 4, transformer_dim // 8, kernel_size=2, stride=2
             ),
-            self.activation(),
+            activation(),
         )
         if final_layer_hypernetwork_mlp:
             self.output_hypernetworks_mlps = nn.ModuleList(
                 [
                     MLP(transformer_dim, transformer_dim, transformer_dim // 8, 3)
-                    for i in range(num_outputs)
+                    for i in range(self.num_mask_tokens)
                 ]
             )
         else:
             self.output_hypernetworks_mlps = None
 
-        self.transformer_dim = transformer_dim
-
-        self.iou_prediction_head = iou_prediction_head
 
     def forward(
         self,
@@ -75,38 +70,44 @@ class MaskDecoder(nn.Module):
         multimask_output: bool,
     ) -> Dict[str, torch.Tensor]:
 
-        output_token = self.output_embed.weight.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
-        queries = torch.cat((output_token, sparse_prompt_embeddings), dim=1)
-        queries = queries.to(torch.float)  # Preserved from old version, maybe unncessary
+        output_tokens = torch.cat([
+            self.iou_token.weight, self.mask_tokens.weight
+        ], dim=0)
+        if self.extra_tokens is not None:
+            output_tokens = torch.cat([
+                output_tokens, self.extra_tokens.weight
+            ], dim=0)
+        output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
+        tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, queries.shape[0], dim=0)
+        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
         src = src + dense_prompt_embeddings
-        pos_src = torch.repeat_interleave(image_pe, queries.shape[0], dim=0)
+        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
         b, c, h, w = src.shape
 
-        hs, src = self.transformer(src, pos_src, queries)
+        hs, src = self.transformer(src, pos_src, tokens)
+        iou_token_out = hs[:, 0, :]
+        mask_tokens_out = hs[:, 1:(1+self.num_mask_tokens), :]
 
         src = src.transpose(1, 2).view(b, c, h, w)
         outputs_seg_masks = self.output_upscaling(src)
         if self.output_hypernetworks_mlps is not None:
             hyper_in = []
-            for i in range(self.num_outputs):
+            for i in range(self.num_mask_tokens):
                 hyper_in.append(
-                    self.output_hypernetworks_mlps[i](hs[:, i+self.n_iou_token, :])
+                        self.output_hypernetworks_mlps[i](mask_tokens_out[:, i, :])
                 )
             hyper_in = torch.stack(hyper_in, dim=1)
         else:
             # TODO: Verify non-mlp model
-            hyper_in = hs[
-                :, 
-                self.n_iou_token : (self.n_iou_token + self.num_outputs), 
-                : outputs_seg_masks.shape[1]
-            ]
+            hyper_in = mask_tokens_out[:, :, :outputs_seg_masks.shape[1]]
         b, c, h, w = outputs_seg_masks.shape
         outputs_seg_masks = (
             hyper_in @ outputs_seg_masks.view(b, c, h * w)
         ).view(b, -1, h, w) 
+
+        iou_pred = self.iou_prediction_head(iou_token_out)
 
         # Select the dedicated slot or other slots if
         # dedicated_multiclick_slot = True
@@ -118,7 +119,6 @@ class MaskDecoder(nn.Module):
             channel_slice = slice(None, None)
         outputs_seg_masks = outputs_seg_masks[:, channel_slice, :, :]
 
-        iou_pred = self.iou_prediction_head(hs[:, 0, :])
 
         # Prepare output
         return outputs_seg_masks, iou_pred[:, channel_slice]

@@ -27,7 +27,14 @@ def main(args):
         state_dict = state_dict['model']
 
     key_mapping = {}
-    for k in state_dict:
+    output_embed_split = {}
+    for k, v in state_dict.items():
+        if "interactive_module.output_embed" in k:
+            output_embed_split = {
+                "mask_decoder.iou_token.weight" : v[:1,:],
+                "mask_decoder.mask_tokens.weight" : v[1:,:],
+            }
+            continue
         if "backbone.net" in k:
             new_k = k.replace("backbone.net", "image_encoder")
         elif "backbone.simfp_4" in k:
@@ -56,6 +63,11 @@ def main(args):
     for k, new_k in key_mapping.items():
         print(k, "-->", new_k)
         new_state_dict[new_k] = state_dict[k]
+    if output_embed_split:
+        print("Splitting interactive_module.output_embed.weight")
+        for k, v in output_embed_split.items():
+            print(f"--> {k} has {v.shape[0]} tokens.")
+            new_state_dict[k] = v
 
     print("Checking that keys match to SAM.")
     sam = build_sam()

@@ -122,7 +122,6 @@ def build_sam():
             mask_in_chans=16
         ),
         mask_decoder=MaskDecoder(
-            dedicated_multiclick_slot=True,
             final_layer_hypernetwork_mlp=True,
             iou_prediction_head=MLP(
                 hidden_dim=256,
@@ -130,8 +129,8 @@ def build_sam():
                 output_dim=4,
                 num_layers=3,
             ),
-            num_outputs=3,
-            number_of_additional_tokens=5,
+            num_multimask_outputs=3,
+            dedicated_multiclick_slot=True,
             transformer=Transformer(
                 add_pe_to_first_layer=True,
                 decoder_layer=TwoWayDecoderLayer,
