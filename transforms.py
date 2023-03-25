@@ -26,6 +26,14 @@ class ResizeLongestSide:
         coords = coords + 0.5 #FIXME: This +0.5 is somewhat orphaned
         return coords
 
+    def apply_boxes(
+        self, boxes: np.ndarray, original_size: Tuple[int]
+    ) -> np.ndarray:
+        boxes = self.apply_coords(
+            boxes.reshape(-1, 2, 2), original_size
+        )
+        return boxes.reshape(-1, 4)
+
     def apply_mask(self, mask: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 

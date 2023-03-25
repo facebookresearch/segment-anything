@@ -59,36 +59,36 @@ class SamPredictor:
         self,
         point_coords: np.ndarray,
         point_labels: np.ndarray,
+        boxes: Optional[np.ndarray],
         mask_input: Optional[np.ndarray],
-        multimask: Optional[bool] = None,
+        multimask_output: bool = True,
         mask_input_transform: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if not self.is_image_set:
             raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
-        # FIXME: Will become cleaner when moving to prompt-based model.
-        if not np.any(np.logical_or(point_labels == 2, point_labels == 3)):
-            point_coords = np.concatenate([point_coords, np.zeros((1, 1, 2))], axis=1)
-            point_labels = np.concatenate([point_labels, np.array([[-1]])], axis=1)
-
-        # Auto-detect if the input is the first iteration
-        if multimask is None:
-            multimask = (point_coords.shape[1] == 2)
-
-        point_coords = self.transform.apply_coords(
-            point_coords, self.original_size
-        )
-        point_coords = torch.as_tensor(point_coords).to(torch.float)
-        point_labels = torch.as_tensor(point_labels).to(torch.int)
-        if mask_input_transform:
-            mask_input = self.transform.apply_mask(mask_input)
-        mask_input = torch.as_tensor(mask_input) if mask_input is not None else None
+        if point_coords is not None:
+            point_coords = self.transform.apply_coords(
+                point_coords, self.original_size
+            )
+            point_coords = torch.as_tensor(point_coords).to(torch.float)
+            point_labels = torch.as_tensor(point_labels).to(torch.int)
+        if boxes is not None:
+            boxes = self.transform.apply_boxes(
+                boxes, self.original_size
+            )
+            boxes = torch.as_tensor(boxes).to(torch.float)
+        if mask_input is not None:
+            if mask_input_transform:
+                mask_input = self.transform.apply_mask(mask_input)
+            mask_input = torch.as_tensor(mask_input)
 
         masks, iou_predictions, low_res_masks = self.predict_torch(
             point_coords,
             point_labels,
+            boxes,
             mask_input,
-            multimask,
+            multimask_output,
         )
 
         return masks.numpy(), iou_predictions.numpy(), low_res_masks.numpy()
@@ -98,19 +98,28 @@ class SamPredictor:
         self,
         point_coords: np.ndarray,
         point_labels: np.ndarray,
+        boxes: Optional[torch.Tensor],
         mask_input: Optional[torch.Tensor],
-        multimask: bool,
+        multimask_output: bool,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if not self.is_image_set:
             raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
-        point_coords = point_coords / self.model.image_encoder.img_size
+        if point_coords is not None:
+            points = (point_coords, point_labels)
+        else:
+            points = None
+        sparse_embeddings, dense_embeddings = self.model.prompt_encoder(
+            points=points,
+            boxes=boxes,
+            masks=mask_input,
+        )
         low_res_masks, iou_predictions = self.model.mask_decoder(
-            self.features,
-            point_coords,
-            point_labels,
-            mask_input,
-            multimask,
+            image_embeddings=self.features,
+            image_pe=self.model.prompt_encoder.get_dense_pe(),
+            sparse_prompt_embeddings=sparse_embeddings,
+            dense_prompt_embeddings=dense_embeddings,
+            multimask_output=multimask_output,
         )
 
         masks = self.model.postprocess_masks(

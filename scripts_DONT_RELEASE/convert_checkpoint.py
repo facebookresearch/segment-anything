@@ -4,7 +4,7 @@ import torch
 
 import sys
 sys.path.append("..")
-from interactive_predictor import build_sam
+from sam import build_sam
 
 parser = argparse.ArgumentParser(
     description="Map a checkpoint to the new code."
@@ -35,6 +35,16 @@ def main(args):
             layer = int(pieces[2])
             new_layer = layer * 2 + int(pieces[3] == "norm")
             new_k = "image_encoder.neck." + str(new_layer) + "." + pieces[-1]
+        elif "interactive_module.pred_downscaling" in k:
+            new_k = k.replace("interactive_module.pred_downscaling", "prompt_encoder.mask_downscaling")
+        elif "interactive_module.no_pred_embed" in k:
+            new_k = k.replace("interactive_module.no_pred_embed", "prompt_encoder.no_mask_embed")
+        elif "interactive_module.point_embeddings" in k:
+            new_k = k.replace("interactive_module", "prompt_encoder")
+        elif "interactive_module.not_a_point_embed" in k:
+            new_k = k.replace("interactive_module", "prompt_encoder")
+        elif "interactive_module.pe_layer.positional_encoding_gaussian_matrix" in k:
+            new_k = k.replace("interactive_module", "prompt_encoder")
         elif "interactive_module" in k:
             new_k = k.replace("interactive_module", "mask_decoder")
         else:

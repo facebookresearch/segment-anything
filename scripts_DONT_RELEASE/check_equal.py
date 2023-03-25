@@ -11,9 +11,9 @@ from detectron2.data.detection_utils import read_image
 
 def main():
     test_image_path = "/private/home/mintun/DalleBunny.png"
-    point_coords = np.array([[[700,100]]])
+    point_coords = np.array([[[700.0,100.0]]])
     point_labels = np.array([[1]])
-    box_coords = np.array([[[500,400], [600, 700]]])
+    box_coords = np.array([[[500.0,400.0], [600.0, 700.0]]])
     box_labels = np.array([[2,3]])
     im = read_image(test_image_path, "RGB")
 
@@ -42,8 +42,9 @@ def main():
     masks, iou_preds, low_res_masks = predictor.predict(
         point_coords=point_coords,
         point_labels=point_labels,
+        boxes=None,
         mask_input=None,
-        multimask=True,
+        multimask_output=True,
     )
     old_model_masks, old_model_iou_preds, old_model_for_next_iter = old_model.predict(
             point_coords=point_coords[0],
@@ -73,8 +74,9 @@ def main():
     masks, iou_preds, low_res_masks = predictor.predict(
         point_coords=point_coords,
         point_labels=point_labels,
+        boxes=None,
         mask_input=low_res_masks[:,:1,:,:],
-        multimask=False,
+        multimask_output=False,
     )
     old_model_masks, old_model_iou_preds, old_model_for_next_iter = old_model.predict(
             point_coords=point_coords[0],
@@ -102,10 +104,11 @@ def main():
 
     print("Box test:")
     masks, iou_preds, low_res_masks = predictor.predict(
-        point_coords=box_coords,
-        point_labels=box_labels,
+        point_coords=None,
+        point_labels=None,
+        boxes=box_coords.reshape(-1, 4),
         mask_input=None,
-        multimask=True,
+        multimask_output=True,
     )
     old_model_masks, old_model_iou_preds, old_model_for_next_iter = old_model.predict(
             point_coords=box_coords[0],

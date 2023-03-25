@@ -8,6 +8,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from image_encoder import ImageEncoderViT
+from prompt_encoder import PromptEncoder
 from mask_decoder import MaskDecoder
 from transformer import Transformer, TwoWayDecoderLayer
 from layers import MLP
@@ -20,12 +21,14 @@ class Sam(nn.Module):
     def __init__(
         self,
         image_encoder: torch.nn.Module,
+        prompt_encoder: torch.nn.Module,
         mask_decoder: torch.nn.Module,
         pixel_mean = [123.675, 116.28, 103.53],
         pixel_std = [58.395, 57.12, 57.375],
     ):
         super().__init__()
         self.image_encoder = image_encoder
+        self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
         self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
@@ -34,7 +37,7 @@ class Sam(nn.Module):
     def forward(
         self, 
         batched_input: List[Dict[str, torch.Tensor]],
-        multi_mask: bool,
+        multimask_output: bool,
     ) -> List[Dict[str, torch.Tensor]]:
         input_images = torch.stack(
             [self.preprocess(x['image']) for x in batched_input], dim=0
@@ -43,12 +46,21 @@ class Sam(nn.Module):
 
         outputs = []
         for image_record, image_embeddings in zip(batched_input, image_embeddings):
+            if 'point_coords' in image_record:
+                points = (image_record['point_coords'], image_record['point_labels'])
+            else:
+                points = None
+            sparse_embeddings, dense_embeddings = self.prompt_encoder(
+                points=points,
+                boxes=image_record.get('boxes', None),
+                masks=image_record.get('masks', None),
+            )
             low_res_masks, iou_predictions = self.mask_decoder(
-                image_embeddings,
-                image_record['point_coords'] / self.image_encoder.img_size,
-                image_record['point_labels'],
-                image_record.get('mask_input', None),
-                multi_mask,
+                image_embeddings=image_embeddings,
+                image_pe=self.prompt_encoder.get_dense_pe(),
+                sparse_embeddings=sparse_embeddings,
+                dense_embeddings=dense_embeddings,
+                multimask_output=multimask_output,
             )
             masks = self.postprocess_masks(
                 low_res_masks,
@@ -103,8 +115,13 @@ def build_sam():
             window_size=14,
             out_chans=256,
         ),
+        prompt_encoder=PromptEncoder(
+            embed_dim=256,
+            image_embedding_size=(64, 64),
+            input_image_size=(1024, 1024),
+            mask_in_chans=16
+        ),
         mask_decoder=MaskDecoder(
-            add_mask_pred=True,
             dedicated_multiclick_slot=True,
             final_layer_hypernetwork_mlp=True,
             iou_prediction_head=MLP(
@@ -113,11 +130,7 @@ def build_sam():
                 output_dim=4,
                 num_layers=3,
             ),
-            mask_dim=None, # To remove
-            mask_pred_dim=16,
-            mlp_hidden_dim=256,
             num_outputs=3,
-            num_point_embeddings=4,
             number_of_additional_tokens=5,
             transformer=Transformer(
                 add_pe_to_first_layer=True,
