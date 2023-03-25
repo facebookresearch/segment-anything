@@ -31,8 +31,6 @@ class ImageEncoderViT(nn.Module):
         window_block_indexes=(),
         pretrain_img_size=224,
         pretrain_use_cls_token=True,
-        pixel_mean=[123.675, 116.28, 103.53],
-        pixel_std=[58.395, 57.12, 57.375],
     ):
         """
         Args:
@@ -108,11 +106,8 @@ class ImageEncoderViT(nn.Module):
             LayerNorm(out_chans),
         )
 
-        self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
 
     def forward(self, x):
-        x = self.preprocess(x)
         x = self.patch_embed(x)
         # FIXME: We have a fixed input size so we can do this rescaling
         # once in the checkpoint and skip this step.
@@ -128,24 +123,6 @@ class ImageEncoderViT(nn.Module):
 
         return x
 
-    def preprocess(self, x):
-        # Normalize colors
-        x = (x - self.pixel_mean) / self.pixel_std
-
-        # Pad
-        h, w = x.shape[2:]
-        padh = self.img_size - h
-        padw = self.img_size - w
-        x = F.pad(x, (0, padw, 0, padh))
-        return x
-
-    @staticmethod
-    def postprocess_masks(masks, input_image_h, input_image_w):
-        """
-        Reverses 'preprocess' on results masks. Here this just means
-        stripping padding.
-        """
-        return masks[..., :input_image_h, :input_image_w]
 
 class Block(nn.Module):
     """Transformer blocks with support of window attention and residual propagation blocks"""
