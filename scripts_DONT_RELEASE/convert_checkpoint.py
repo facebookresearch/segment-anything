@@ -29,7 +29,7 @@ def main(args):
     key_mapping = {}
     for k in state_dict:
         if "backbone.net" in k:
-            new_k = k.replace("backbone.net", "image_encoder.backbone")
+            new_k = k.replace("backbone.net", "image_encoder")
         elif "backbone.simfp_4" in k:
             pieces = k.split(".")
             layer = int(pieces[2])
