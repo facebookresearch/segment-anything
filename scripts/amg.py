@@ -4,14 +4,14 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
-import cv2  # type: ignore
-
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
-
 import argparse
+import cv2  # type: ignore
 import json
 import os
 from typing import Any, Dict, List
+
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+
 
 parser = argparse.ArgumentParser(
     description=(
@@ -148,6 +148,14 @@ amg_settings.add_argument(
     ),
 )
 
+def create_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Runs automatic mask generation on an input image or directory of images, "
+            "and outputs masks as either PNGs or COCO-style RLEs. Requires open-cv, "
+            "as well as pycocotools if saving in RLE format."
+        )
+    )
 
 def write_masks_to_folder(masks: List[Dict[str, Any]], path: str) -> None:
     header = "id,area,bbox_x0,bbox_y0,bbox_w,bbox_h,point_input_x,point_input_y,predicted_iou,stability_score,crop_box_x0,crop_box_y0,crop_box_w,crop_box_h"  # noqa
@@ -234,5 +242,6 @@ def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
+    parser = create_parser()
     args = parser.parse_args()
     main(args)
