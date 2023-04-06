@@ -21,7 +21,7 @@ except ImportError:
     onnxruntime_exists = False
 
 try:
-    import onnx
+    import onnx  # type: ignore
     import onnxsim  # type: ignore
 
     onnxsim_exists = True
