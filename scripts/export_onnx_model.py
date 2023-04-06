@@ -110,14 +110,14 @@ parser.add_argument(
 
 
 def run_export(
-        model_type: str,
-        checkpoint: str,
-        output: str,
-        opset: int,
-        return_single_mask: bool,
-        gelu_approximate: bool = False,
-        use_stability_score: bool = False,
-        return_extra_metrics=False,
+    model_type: str,
+    checkpoint: str,
+    output: str,
+    opset: int,
+    return_single_mask: bool,
+    gelu_approximate: bool = False,
+    use_stability_score: bool = False,
+    return_extra_metrics=False,
 ):
     print("Loading model...")
     if model_type == "vit_b":
