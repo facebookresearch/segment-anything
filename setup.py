@@ -32,9 +32,9 @@ def get_version():
 _ALL_REQUIREMENTS = ["matplotlib", "pycocotools", "opencv-python", "onnx", "onnxruntime"]
 
 _DEV_REQUIREMENTS = [
+    "black==23.*",
+    "isort==5.12.0",
     "flake8",
-    "isort",
-    "black",
     "mypy",
 ]
 
