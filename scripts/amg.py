@@ -6,6 +6,8 @@
 
 import cv2  # type: ignore
 
+import sys
+sys.path.append('../') 
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 
 import argparse
