@@ -54,7 +54,7 @@ or generate masks for an entire image:
 ```
 from segment_anything import build_sam, SamAutomaticMaskGenerator
 mask_generator = SamAutomaticMaskGenerator(build_sam(checkpoint="</path/to/model.pth>"))
-masks = mask_generator_generate(<your_image>)
+masks = mask_generator.generate(<your_image>)
 ```
 
 Additionally, masks can be generated for images from the command line:
