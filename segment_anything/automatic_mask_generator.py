@@ -357,7 +357,7 @@ class SamAutomaticMaskGenerator:
         keep_by_nms = batched_nms(
             boxes.float(),
             torch.as_tensor(scores),
-            torch.zeros(len(boxes)),  # categories
+            torch.zeros_like(boxes[:,0]),  # categories
             iou_threshold=nms_thresh,
         )
 
