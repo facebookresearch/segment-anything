@@ -11,7 +11,6 @@ from segment_anything.utils.onnx import SamOnnxModel
 
 import argparse
 import warnings
-from io import BytesIO
 
 try:
     import onnxruntime  # type: ignore
