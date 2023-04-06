@@ -7,7 +7,10 @@
 import torch
 
 from segment_anything import build_sam, build_sam_vit_b, build_sam_vit_l
+from segment_anything.modeling.sam import Sam
 from segment_anything.utils.onnx import SamOnnxModel
+import onnx
+from onnx.external_data_helper import convert_model_to_external_data
 
 import argparse
 import warnings
@@ -24,11 +27,30 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument(
-    "--checkpoint", type=str, required=True, help="The path to the SAM model checkpoint."
+    "--checkpoint",
+    type=str,
+    required=True,
+    help="The path to the SAM model checkpoint.",
 )
 
 parser.add_argument(
-    "--output", type=str, required=True, help="The filename to save the ONNX model to."
+    "--encoder-output",
+    type=str,
+    required=True,
+    help="The filename to save the encoder ONNX model to.",
+)
+
+parser.add_argument(
+    "--encoder-data-file",
+    type=str,
+    help="The filename to save the external data for encoder ONNX model to. Use this if the encoder model is too large to be saved in a single file.",
+)
+
+parser.add_argument(
+    "--decoder-output",
+    type=str,
+    required=True,
+    help="The filename to save the decoder ONNX model to.",
 )
 
 parser.add_argument(
@@ -56,11 +78,21 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--quantize-out",
+    "--quantize-encoder-out",
     type=str,
     default=None,
     help=(
-        "If set, will quantize the model and save it with this name. "
+        "If set, will quantize the encoder model and save it with this name. "
+        "Quantization is performed with quantize_dynamic from onnxruntime.quantization.quantize."
+    ),
+)
+
+parser.add_argument(
+    "--quantize-decoder-out",
+    type=str,
+    default=None,
+    help=(
+        "If set, will quantize the decoder model and save it with this name. "
         "Quantization is performed with quantize_dynamic from onnxruntime.quantization.quantize."
     ),
 )
@@ -97,7 +129,9 @@ parser.add_argument(
 def run_export(
     model_type: str,
     checkpoint: str,
-    output: str,
+    encoder_output: str,
+    encoder_data_file: str,
+    decoder_output: str,
     opset: int,
     return_single_mask: bool,
     gelu_approximate: bool = False,
@@ -112,6 +146,74 @@ def run_export(
     else:
         sam = build_sam(checkpoint)
 
+    export_encoder(sam, encoder_output, opset, encoder_data_file)
+
+    export_decoder(
+        sam,
+        decoder_output,
+        opset,
+        return_single_mask,
+        gelu_approximate,
+        use_stability_score,
+        return_extra_metrics,
+    )
+
+
+def export_encoder(sam: Sam, output: str, opset: int, encoder_data_file: str):
+    dynamic_axes = {
+        "x": {0: "batch"},
+    }
+    dummy_inputs = {
+        "x": torch.randn(1, 3, 1024, 1024, dtype=torch.float),
+    }
+    _ = sam.image_encoder(**dummy_inputs)
+
+    output_names = ["image_embeddings"]
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+        warnings.filterwarnings("ignore", category=UserWarning)
+        print(f"Exporing onnx model to {output}...")
+        torch.onnx.export(
+            sam.image_encoder,
+            tuple(dummy_inputs.values()),
+            output,
+            export_params=True,
+            verbose=False,
+            opset_version=opset,
+            do_constant_folding=True,
+            input_names=list(dummy_inputs.keys()),
+            output_names=output_names,
+            dynamic_axes=dynamic_axes,
+        )
+
+    if encoder_data_file:
+        onnx_model = onnx.load(output)
+        convert_model_to_external_data(
+            onnx_model,
+            all_tensors_to_one_file=True,
+            location=encoder_data_file,
+            size_threshold=1024,
+            convert_attribute=False,
+        )
+        onnx.save_model(onnx_model, output)
+
+    if onnxruntime_exists:
+        ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}
+        ort_session = onnxruntime.InferenceSession(output)
+        _ = ort_session.run(None, ort_inputs)
+        print("Encoder has successfully been run with ONNXRuntime.")
+
+
+def export_decoder(
+    sam: Sam,
+    output: str,
+    opset: int,
+    return_single_mask: bool,
+    gelu_approximate: bool,
+    use_stability_score: bool,
+    return_extra_metrics: bool,
+):
     onnx_model = SamOnnxModel(
         model=sam,
         return_single_mask=return_single_mask,
@@ -134,7 +236,9 @@ def run_export(
     mask_input_size = [4 * x for x in embed_size]
     dummy_inputs = {
         "image_embeddings": torch.randn(1, embed_dim, *embed_size, dtype=torch.float),
-        "point_coords": torch.randint(low=0, high=1024, size=(1, 5, 2), dtype=torch.float),
+        "point_coords": torch.randint(
+            low=0, high=1024, size=(1, 5, 2), dtype=torch.float
+        ),
         "point_labels": torch.randint(low=0, high=4, size=(1, 5), dtype=torch.float),
         "mask_input": torch.randn(1, 1, *mask_input_size, dtype=torch.float),
         "has_mask_input": torch.tensor([1], dtype=torch.float),
@@ -148,26 +252,25 @@ def run_export(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
-        with open(output, "wb") as f:
-            print(f"Exporing onnx model to {output}...")
-            torch.onnx.export(
-                onnx_model,
-                tuple(dummy_inputs.values()),
-                f,
-                export_params=True,
-                verbose=False,
-                opset_version=opset,
-                do_constant_folding=True,
-                input_names=list(dummy_inputs.keys()),
-                output_names=output_names,
-                dynamic_axes=dynamic_axes,
-            )
+        print(f"Exporing onnx model to {output}...")
+        torch.onnx.export(
+            onnx_model,
+            tuple(dummy_inputs.values()),
+            output,
+            export_params=True,
+            verbose=False,
+            opset_version=opset,
+            do_constant_folding=True,
+            input_names=list(dummy_inputs.keys()),
+            output_names=output_names,
+            dynamic_axes=dynamic_axes,
+        )
 
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}
         ort_session = onnxruntime.InferenceSession(output)
         _ = ort_session.run(None, ort_inputs)
-        print("Model has successfully been run with ONNXRuntime.")
+        print("Decoder has successfully been run with ONNXRuntime.")
 
 
 def to_numpy(tensor):
@@ -179,7 +282,9 @@ if __name__ == "__main__":
     run_export(
         model_type=args.model_type,
         checkpoint=args.checkpoint,
-        output=args.output,
+        encoder_output=args.encoder_output,
+        encoder_data_file=args.encoder_data_file,
+        decoder_output=args.decoder_output,
         opset=args.opset,
         return_single_mask=args.return_single_mask,
         gelu_approximate=args.gelu_approximate,
@@ -187,15 +292,31 @@ if __name__ == "__main__":
         return_extra_metrics=args.return_extra_metrics,
     )
 
-    if args.quantize_out is not None:
+    if args.quantize_encoder_out is not None:
         assert onnxruntime_exists, "onnxruntime is required to quantize the model."
         from onnxruntime.quantization import QuantType  # type: ignore
         from onnxruntime.quantization.quantize import quantize_dynamic  # type: ignore
 
-        print(f"Quantizing model and writing to {args.quantize_out}...")
+        print(f"Quantizing encoder model and writing to {args.quantize_encoder_out}...")
         quantize_dynamic(
-            model_input=args.output,
-            model_output=args.quantize_out,
+            model_input=args.encoder_output,
+            model_output=args.quantize_encoder_out,
+            optimize_model=True,
+            per_channel=False,
+            reduce_range=False,
+            weight_type=QuantType.QUInt8,
+        )
+        print("Done!")
+
+    if args.quantize_decoder_out is not None:
+        assert onnxruntime_exists, "onnxruntime is required to quantize the model."
+        from onnxruntime.quantization import QuantType  # type: ignore
+        from onnxruntime.quantization.quantize import quantize_dynamic  # type: ignore
+
+        print(f"Quantizing decoder model and writing to {args.quantize_decoder_out}...")
+        quantize_dynamic(
+            model_input=args.decoder_output,
+            model_output=args.quantize_decoder_out,
             optimize_model=True,
             per_channel=False,
             reduce_range=False,
