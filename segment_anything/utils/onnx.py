@@ -8,10 +8,10 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from typing import Tuple
+from segment_anything.modeling import Sam
+from segment_anything.utils.amg import calculate_stability_score
 
-from ..modeling import Sam
-from .amg import calculate_stability_score
+from typing import Tuple
 
 
 class SamOnnxModel(nn.Module):
