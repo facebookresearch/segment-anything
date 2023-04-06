@@ -11,6 +11,7 @@ from segment_anything.utils.onnx import SamOnnxModel
 
 import argparse
 import warnings
+from io import BytesIO
 
 try:
     import onnxruntime  # type: ignore
@@ -18,6 +19,14 @@ try:
     onnxruntime_exists = True
 except ImportError:
     onnxruntime_exists = False
+
+try:
+    import onnx
+    import onnxsim  # type: ignore
+
+    onnxsim_exists = True
+except ImportError:
+    onnxsim_exists = False
 
 parser = argparse.ArgumentParser(
     description="Export the SAM prompt encoder and mask decoder to an ONNX model."
@@ -55,6 +64,13 @@ parser.add_argument(
     help="The ONNX opset version to use. Must be >=11",
 )
 
+parser.add_argument(
+    "--simplify",
+    action="store_true",
+    help=(
+        "Simplify the ONNX model by onnx-simplify"
+    ),
+)
 parser.add_argument(
     "--quantize-out",
     type=str,
@@ -95,14 +111,14 @@ parser.add_argument(
 
 
 def run_export(
-    model_type: str,
-    checkpoint: str,
-    output: str,
-    opset: int,
-    return_single_mask: bool,
-    gelu_approximate: bool = False,
-    use_stability_score: bool = False,
-    return_extra_metrics=False,
+        model_type: str,
+        checkpoint: str,
+        output: str,
+        opset: int,
+        return_single_mask: bool,
+        gelu_approximate: bool = False,
+        use_stability_score: bool = False,
+        return_extra_metrics=False,
 ):
     print("Loading model...")
     if model_type == "vit_b":
@@ -162,6 +178,12 @@ def run_export(
                 output_names=output_names,
                 dynamic_axes=dynamic_axes,
             )
+    if onnxsim_exists:
+        onnx_graph = onnx.load(output)
+        onnx_graph, check = onnxsim.simplify(onnx_graph)
+        assert check, "Simplified ONNX model failed !"
+        onnx.save(onnx_graph, output)
+        print("Simplify the ONNX model success!")
 
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}
