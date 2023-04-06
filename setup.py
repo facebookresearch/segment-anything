@@ -54,4 +54,5 @@ setup(
     install_requires=get_requirements(),
     packages=find_packages(exclude="notebooks"),
     extras_require=extras,
+    python_requires=">=3.8",
 )
