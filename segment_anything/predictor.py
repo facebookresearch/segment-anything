@@ -186,7 +186,7 @@ class SamPredictor:
           point_labels (torch.Tensor or None): A BxN array of labels for the
             point prompts. 1 indicates a foreground point and 0 indicates a
             background point.
-          box (np.ndarray or None): A Bx4 array given a box prompt to the
+          boxes (np.ndarray or None): A Bx4 array given a box prompt to the
             model, in XYXY format.
           mask_input (np.ndarray): A low resolution mask input to the model, typically
             coming from a previous prediction iteration. Has form Bx1xHxW, where
