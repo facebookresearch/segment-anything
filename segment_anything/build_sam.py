@@ -21,9 +21,6 @@ def build_sam_vit_h(checkpoint=None):
     )
 
 
-build_sam = build_sam_vit_h
-
-
 def build_sam_vit_l(checkpoint=None):
     return _build_sam(
         encoder_embed_dim=1024,
@@ -45,8 +42,8 @@ def build_sam_vit_b(checkpoint=None):
 
 
 sam_model_registry = {
-    "default": build_sam,
-    "vit_h": build_sam,
+    "default": build_sam_vit_h,
+    "vit_h": build_sam_vit_h,
     "vit_l": build_sam_vit_l,
     "vit_b": build_sam_vit_b,
 }
@@ -59,10 +56,18 @@ def _build_sam(
     encoder_global_attn_indexes,
     checkpoint=None,
 ):
+    # Dimension of the prompt embedding
     prompt_embed_dim = 256
+    
+    # Input image size
     image_size = 1024
+    
+    # Patch Size for Vision Transformer
     vit_patch_size = 16
+    
+    # Image embedding size is created by dividing the input image size with the patch size
     image_embedding_size = image_size // vit_patch_size
+    
     sam = Sam(
         image_encoder=ImageEncoderViT(
             depth=encoder_depth,
