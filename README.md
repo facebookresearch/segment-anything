@@ -42,7 +42,7 @@ pip install opencv-python pycocotools matplotlib onnxruntime onnx
 
 First download a [model checkpoint](#model-checkpoints). Then the model can be used in just a few lines to get masks from a given prompt:
 
-```
+```python
 from segment_anything import build_sam, SamPredictor 
 predictor = SamPredictor(build_sam(checkpoint="</path/to/model.pth>"))
 predictor.set_image(<your_image>)
@@ -51,7 +51,7 @@ masks, _, _ = predictor.predict(<input_prompts>)
 
 or generate masks for an entire image:
 
-```
+```python
 from segment_anything import build_sam, SamAutomaticMaskGenerator
 mask_generator = SamAutomaticMaskGenerator(build_sam(checkpoint="</path/to/model.pth>"))
 masks = mask_generator.generate(<your_image>)
@@ -59,7 +59,7 @@ masks = mask_generator.generate(<your_image>)
 
 Additionally, masks can be generated for images from the command line:
 
-```
+```python
 python scripts/amg.py --checkpoint <path/to/sam/checkpoint> --input <image_or_folder> --output <output_directory>
 ```
 
@@ -74,7 +74,7 @@ See the examples notebooks on [using SAM with prompts](/notebooks/predictor_exam
 
 SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with
 
-```
+```python
 python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --output <path/to/output>
 ```
 
@@ -83,7 +83,7 @@ See the [example notebook](https://github.com/facebookresearch/segment-anything/
 ## <a name="Models"></a>Model Checkpoints
 
 Three model versions of the model are available with different backbone sizes. These models can be instantiated by running 
-```
+```python
 from segment_anything import sam_model_registry
 sam = sam_model_registry["<name>"](checkpoint="<path/to/checkpoint>")
 ```
