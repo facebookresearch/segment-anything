@@ -95,6 +95,16 @@ Click the links below to download the checkpoint for the corresponding model nam
 
 ## License
 The model is licensed under the [Apache 2.0 license](LICENSE).
+## Grounded-Segment-Anything Sub-Project
+
+We are excited to introduce an extension to Segment-Anything, the [Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything) sub-project. This project combines the state-of-the-art zero-shot detector, Grounding-DINO, with Segment-Anything to generate high-quality box and mask annotations using text inputs.
+
+The Grounded-Segment-Anything approach enables efficient and accurate object segmentation by leveraging both zero-shot object detection and segmentation capabilities. This powerful combination can be particularly useful for applications like image labeling, object recognition, and image editing.
+
+![Example results from Grounded-Segment-Anything](https://github.com/IDEA-Research/Grounded-Segment-Anything/raw/main/assets/grounded_sam2.jpg)
+
+Visit the [Grounded-Segment-Anything repository](https://github.com/IDEA-Research/Grounded-Segment-Anything) to learn more about this sub-project and explore its capabilities.
+
 
 ## Contributing
 
