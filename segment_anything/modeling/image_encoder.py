@@ -1,19 +1,12 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 from typing import Optional, Tuple, Type
 
 from .common import LayerNorm2d, MLPBlock
 
-
-# This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 class ImageEncoderViT(nn.Module):
     def __init__(
         self,
@@ -34,39 +27,20 @@ class ImageEncoderViT(nn.Module):
         window_size: int = 0,
         global_attn_indexes: Tuple[int, ...] = (),
     ) -> None:
-        """
-        Args:
-            img_size (int): Input image size.
-            patch_size (int): Patch size.
-            in_chans (int): Number of input image channels.
-            embed_dim (int): Patch embedding dimension.
-            depth (int): Depth of ViT.
-            num_heads (int): Number of attention heads in each ViT block.
-            mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-            qkv_bias (bool): If True, add a learnable bias to query, key, value.
-            norm_layer (nn.Module): Normalization layer.
-            act_layer (nn.Module): Activation layer.
-            use_abs_pos (bool): If True, use absolute positional embeddings.
-            use_rel_pos (bool): If True, add relative positional embeddings to the attention map.
-            rel_pos_zero_init (bool): If True, zero initialize relative positional parameters.
-            window_size (int): Window size for window attention blocks.
-            global_attn_indexes (list): Indexes for blocks using global attention.
-        """
         super().__init__()
         self.img_size = img_size
+        self.patch_size = patch_size
+        self.embed_dim = embed_dim
 
-        self.patch_embed = PatchEmbed(
-            kernel_size=(patch_size, patch_size),
-            stride=(patch_size, patch_size),
-            in_chans=in_chans,
-            embed_dim=embed_dim,
-        )
+        self.patch_embed = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.positional_embedding = self.get_positional_embeddings(img_size // patch_size, img_size // patch_size)
+        self.transformer = nn.Transformer(embed_dim, num_heads, depth)
+        self.fc = nn.Linear(embed_dim, out_chans)
 
         self.pos_embed: Optional[nn.Parameter] = None
         if use_abs_pos:
-            # Initialize absolute positional embedding with pretrain image size.
             self.pos_embed = nn.Parameter(
-                torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim)
+                torch.zeros(1, img_size // patch_size * img_size // patch_size, embed_dim)
             )
 
         self.blocks = nn.ModuleList()
@@ -103,16 +77,29 @@ class ImageEncoderViT(nn.Module):
             LayerNorm2d(out_chans),
         )
 
+    def get_positional_embeddings(self, height, width):
+        positional_embedding = torch.zeros(1, height * width, self.embed_dim)
+        div_term = torch.exp(torch.arange(0, self.embed_dim, 2) * -(math.log(10000.0) / self.embed_dim))
+        pos = torch.arange(0, height * width).float()
+        pos = pos.view(height, width)
+        positional_embedding[:, :, 0::2] = torch.sin(pos * div_term)
+        positional_embedding[:, :, 1::2] = torch.cos(pos * div_term)
+        return positional_embedding
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.patch_embed(x)
+        x = x.flatten(2).transpose(1, 2)
         if self.pos_embed is not None:
-            x = x + self.pos_embed
+            x += self.pos_embed
 
         for blk in self.blocks:
             x = blk(x)
 
-        x = self.neck(x.permute(0, 3, 1, 2))
+        x = self.transformer(x)
+        x = self.fc(x)
 
+        x = x.permute(0, 2, 1).view(x.size(0), self.embed_dim, self.img_size // self.patch_size, self.img_size // self.patch_size)
+        x = self.neck(x)
         return x
 
 
