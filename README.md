@@ -43,7 +43,7 @@ pip install opencv-python pycocotools matplotlib onnxruntime onnx
 First download a [model checkpoint](#model-checkpoints). Then the model can be used in just a few lines to get masks from a given prompt:
 
 ```
-from segment_anything import build_sam, SamPredictor 
+from segment_anything import SamPredictor, sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 predictor = SamPredictor(sam)
 predictor.set_image(<your_image>)
@@ -53,7 +53,7 @@ masks, _, _ = predictor.predict(<input_prompts>)
 or generate masks for an entire image:
 
 ```
-from segment_anything import build_sam, SamAutomaticMaskGenerator
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 mask_generator = SamAutomaticMaskGenerator(sam)
 masks = mask_generator.generate(<your_image>)
@@ -62,7 +62,7 @@ masks = mask_generator.generate(<your_image>)
 Additionally, masks can be generated for images from the command line:
 
 ```
-python scripts/amg.py --checkpoint <path/to/checkpoint> --input <image_or_folder> --output <path/to/output>
+python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output <path/to/output>
 ```
 
 See the examples notebooks on [using SAM with prompts](/notebooks/predictor_example.ipynb) and [automatically generating masks](/notebooks/automatic_mask_generator_example.ipynb) for more details.
@@ -77,7 +77,7 @@ See the examples notebooks on [using SAM with prompts](/notebooks/predictor_exam
 SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with
 
 ```
-python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --output <path/to/output>
+python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --model-type <model_type> --output <path/to/output>
 ```
 
 See the [example notebook](https://github.com/facebookresearch/segment-anything/blob/main/notebooks/onnx_model_example.ipynb) for details on how to combine image preprocessing via SAM's backbone with mask prediction using the ONNX model. It is recommended to use the latest stable version of PyTorch for ONNX export.
@@ -89,7 +89,7 @@ Three model versions of the model are available with different backbone sizes. T
 from segment_anything import sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 ```
-Click the links below to download the checkpoint for the corresponding model type. The default model in bold can also be instantiated with `build_sam`, as in the examples in [Getting Started](#getting-started).
+Click the links below to download the checkpoint for the corresponding model type.
 
 * **`default` or `vit_h`: [ViT-H SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)**
 * `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth)
