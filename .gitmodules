@@ -1,0 +1,3 @@
+[submodule "grounded_segment_anything"]
+	path = grounded_segment_anything
+	url = https://github.com/IDEA-Research/Grounded-Segment-Anything
