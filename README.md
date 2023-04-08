@@ -138,7 +138,7 @@ See [here](https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoto
 ## Streamlit demo
 A minimalistic streamlit webapp using the Segment Anything Model(SAM) can be found [here.](https://github.com/prateekralhan/Segment-Anything-Streamlit/tree/main)
 
-![Animation](https://user-images.githubusercontent.com/29462447/230743437-8896afca-774c-48b9-8c53-b959a89501ab.gif)
+![Animation](https://user-images.githubusercontent.com/29462447/230744183-b07af944-dc28-4da8-8d37-f6a81ea13800.gif)
 
 ## License
 The model is licensed under the [Apache 2.0 license](LICENSE).
