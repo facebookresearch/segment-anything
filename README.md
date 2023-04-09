@@ -19,6 +19,8 @@ The **Segment Anything Model (SAM)** produces high quality object masks from inp
 
 The code requires `python>=3.8`, as well as `pytorch>=1.7` and `torchvision>=0.8`. Please follow the instructions [here](https://pytorch.org/get-started/locally/) to install both PyTorch and TorchVision dependencies. Installing both PyTorch and TorchVision with CUDA support is strongly recommended.
 
+If you would like to use MPS backend for MacOS devices with Metal programming framework, please install `pytorch>=2.0` and `torchvision>=0.15.0`. Some OPs (in particular, `torchvision::nms`) are still not fully supported by MPS, so please set the environment variable `PYTORCH_ENABLE_MPS_FALLBACK=1` to enable a fallback on CPU in such a case.
+
 Install Segment Anything:
 
 ```
