@@ -41,8 +41,8 @@ parser.add_argument(
 parser.add_argument(
     "--model-type",
     type=str,
-    default="default",
-    help="The type of model to load, in ['default', 'vit_l', 'vit_b']",
+    required=True,
+    help="The type of model to load, in ['default', 'vit_h', 'vit_l', 'vit_b']",
 )
 
 parser.add_argument(
