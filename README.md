@@ -25,7 +25,7 @@ Install Segment Anything:
 pip install git+https://github.com/facebookresearch/segment-anything.git
 ```
 
-or clone the repository locally and install with
+or clone the repository locally and install with:
 
 ```
 git clone git@github.com:facebookresearch/segment-anything.git
@@ -74,7 +74,7 @@ See the examples notebooks on [using SAM with prompts](/notebooks/predictor_exam
 
 ## ONNX Export
 
-SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with
+SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with:
 
 ```
 python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --model-type <model_type> --output <path/to/output>
@@ -84,7 +84,7 @@ See the [example notebook](https://github.com/facebookresearch/segment-anything/
 
 ## <a name="Models"></a>Model Checkpoints
 
-Three model versions of the model are available with different backbone sizes. These models can be instantiated by running 
+Three model versions of the model are available with different backbone sizes. These models can be instantiated by running:
 ```
 from segment_anything import sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
