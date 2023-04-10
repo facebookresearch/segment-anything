@@ -15,7 +15,7 @@ from typing import Tuple
 
 class ResizeLongestSide:
     """
-    Resizes images to longest side 'target_length', as well as provides
+    Resizes images to the longest side 'target_length', as well as provides
     methods for resizing coordinates and boxes. Provides methods for
     transforming both numpy array and batched torch tensors.
     """

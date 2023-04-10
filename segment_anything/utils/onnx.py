@@ -81,8 +81,8 @@ class SamOnnxModel(nn.Module):
             align_corners=False,
         )
 
-        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size)
-        masks = masks[..., : int(prepadded_size[0]), : int(prepadded_size[1])]
+        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size).to(torch.int64)
+        masks = masks[..., : prepadded_size[0], : prepadded_size[1]]  # type: ignore
 
         orig_im_size = orig_im_size.to(torch.int64)
         h, w = orig_im_size[0], orig_im_size[1]

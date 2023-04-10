@@ -8,6 +8,7 @@ import torch
 
 from segment_anything import build_sam, build_sam_vit_b, build_sam_vit_l
 from segment_anything.modeling.sam import Sam
+from segment_anything import sam_model_registry
 from segment_anything.utils.onnx import SamOnnxModel
 import onnx
 from onnx.external_data_helper import convert_model_to_external_data
@@ -56,8 +57,8 @@ parser.add_argument(
 parser.add_argument(
     "--model-type",
     type=str,
-    default="default",
-    help="In ['default', 'vit_b', 'vit_l']. Which type of SAM model to export.",
+    required=True,
+    help="In ['default', 'vit_h', 'vit_l', 'vit_b']. Which type of SAM model to export.",
 )
 
 parser.add_argument(
@@ -139,12 +140,7 @@ def run_export(
     return_extra_metrics=False,
 ):
     print("Loading model...")
-    if model_type == "vit_b":
-        sam = build_sam_vit_b(checkpoint)
-    elif model_type == "vit_l":
-        sam = build_sam_vit_l(checkpoint)
-    else:
-        sam = build_sam(checkpoint)
+    sam = sam_model_registry[model_type](checkpoint=checkpoint)
 
     export_encoder(sam, encoder_output, opset, encoder_data_file)
 
@@ -252,19 +248,20 @@ def export_decoder(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
-        print(f"Exporing onnx model to {output}...")
-        torch.onnx.export(
-            onnx_model,
-            tuple(dummy_inputs.values()),
-            output,
-            export_params=True,
-            verbose=False,
-            opset_version=opset,
-            do_constant_folding=True,
-            input_names=list(dummy_inputs.keys()),
-            output_names=output_names,
-            dynamic_axes=dynamic_axes,
-        )
+        with open(output, "wb") as f:
+            print(f"Exporting onnx model to {output}...")
+            torch.onnx.export(
+                onnx_model,
+                tuple(dummy_inputs.values()),
+                f,
+                export_params=True,
+                verbose=False,
+                opset_version=opset,
+                do_constant_folding=True,
+                input_names=list(dummy_inputs.keys()),
+                output_names=output_names,
+                dynamic_axes=dynamic_axes,
+            )
 
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}
