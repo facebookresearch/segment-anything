@@ -144,7 +144,7 @@ def run_export(
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
         with open(output, "wb") as f:
-            print(f"Exporing onnx model to {output}...")
+            print(f"Exporting onnx model to {output}...")
             torch.onnx.export(
                 onnx_model,
                 tuple(dummy_inputs.values()),
