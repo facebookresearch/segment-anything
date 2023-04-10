@@ -380,7 +380,7 @@ class PatchEmbed(nn.Module):
             stride (Tuple): stride of the projection layer.
             padding (Tuple): padding size of the projection layer.
             in_chans (int): Number of input image channels.
-            embed_dim (int):  embed_dim (int): Patch embedding dimension.
+            embed_dim (int): Patch embedding dimension.
         """
         super().__init__()
 
