@@ -214,7 +214,7 @@ class SamAutomaticMaskGenerator:
             keep_by_nms = batched_nms(
                 data["boxes"].float(),
                 scores,
-                torch.zeros_like(data["boxes"][:,0]),  # categories
+                torch.zeros_like(data["boxes"][:, 0]),  # categories
                 iou_threshold=self.crop_nms_thresh,
             )
             data.filter(keep_by_nms)
@@ -251,7 +251,7 @@ class SamAutomaticMaskGenerator:
         keep_by_nms = batched_nms(
             data["boxes"].float(),
             data["iou_preds"],
-            torch.zeros_like(data["boxes"][:,0]),  # categories
+            torch.zeros_like(data["boxes"][:, 0]),  # categories
             iou_threshold=self.box_nms_thresh,
         )
         data.filter(keep_by_nms)
@@ -357,7 +357,7 @@ class SamAutomaticMaskGenerator:
         keep_by_nms = batched_nms(
             boxes.float(),
             torch.as_tensor(scores),
-            torch.zeros_like(boxes[:,0]),  # categories
+            torch.zeros_like(boxes[:, 0]),  # categories
             iou_threshold=nms_thresh,
         )
 
