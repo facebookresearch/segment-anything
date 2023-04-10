@@ -144,8 +144,8 @@ class Block(nn.Module):
             rel_pos_zero_init (bool): If True, zero initialize relative positional parameters.
             window_size (int): Window size for window attention blocks. If it equals 0, then
                 use global attention.
-            input_size (tuple(int, int) or None): Input resolution for calculating the relative positional
-                parameter size.
+            input_size (tuple(int, int) or None): Input resolution for calculating the relative
+                positional parameter size.
         """
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -201,8 +201,8 @@ class Attention(nn.Module):
             qkv_bias (bool):  If True, add a learnable bias to query, key, value.
             rel_pos (bool): If True, add relative positional embeddings to the attention map.
             rel_pos_zero_init (bool): If True, zero initialize relative positional parameters.
-            input_size (tuple(int, int) or None): Input resolution for calculating the relative positional
-                parameter size.
+            input_size (tuple(int, int) or None): Input resolution for calculating the relative
+                positional parameter size.
         """
         super().__init__()
         self.num_heads = num_heads
