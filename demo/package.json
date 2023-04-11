@@ -1,9 +1,9 @@
 {
-  "name": "se-demo",
+  "name": "segment-anything-mini-demo",
   "version": "0.1.0",
   "license": "MIT",
   "scripts": {
-    "build": "yarn run clean-dist && webpack --config=configs/webpack/prod.js && mv dist/*.wasm dist/js && cp -R dataset dist",
+    "build": "yarn run clean-dist && webpack --config=configs/webpack/prod.js && mv dist/*.wasm dist/js",
     "clean-dist": "rimraf dist/*",
     "lint": "eslint './src/**/*.{js,ts,tsx}' --quiet",
     "start": "yarn run start-dev",
@@ -52,12 +52,10 @@
     "webpack-merge": "^5.8.0"
   },
   "dependencies": {
-    "konva": "^8.3.12",
     "npyjs": "^0.4.0",
     "onnxruntime-web": "^1.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.1",
     "underscore": "^1.13.6",
     "react-refresh": "^0.14.0"
   }
