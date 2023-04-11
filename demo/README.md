@@ -14,7 +14,7 @@ Navigate to [`http://localhost:8081/`](http://localhost:8081/)
 
 Move your cursor around to see the mask prediction update in real time.
 
-## Change the image, embedding and ONNX model
+## Export the image embedding
 
 In the [ONNX Model Example notebook](https://github.com/facebookresearch/segment-anything/blob/main/notebooks/onnx_model_example.ipynb) upload the image of your choice and generate and save corresponding embedding.
 
@@ -37,17 +37,40 @@ image_embedding = predictor.get_image_embedding().cpu().numpy()
 np.save("dogs_embedding.npy", image_embedding)
 ```
 
-Save the new image and embedding in `/assets/data`and update the following paths to the files at the top of`App.tsx`:
+Save the new image and embedding in `/assets/data`.
+
+## Export the ONNX model
+
+You also need to export the quantized ONNX model from the [ONNX Model Example notebook](https://github.com/facebookresearch/segment-anything/blob/main/notebooks/onnx_model_example.ipynb).
+
+Run the cell in the notebook which saves the `sam_onnx_quantized_example.onnx` file, download it and copy it to the path `/model/sam_onnx_quantized_example.onnx`.
+
+Here is a snippet of the export/quantization code:
+
+```
+onnx_model_path = "sam_onnx_example.onnx"
+onnx_model_quantized_path = "sam_onnx_quantized_example.onnx"
+quantize_dynamic(
+    model_input=onnx_model_path,
+    model_output=onnx_model_quantized_path,
+    optimize_model=True,
+    per_channel=False,
+    reduce_range=False,
+    weight_type=QuantType.QUInt8,
+)
+```
+
+**NOTE: if you change the ONNX model by using a new checkpoint you need to also re-export the embedding.**
+
+## Update the image, embedding, model in the app
+
+Update the following file paths at the top of`App.tsx`:
 
 ```py
 const IMAGE_PATH = "/assets/data/dogs.jpg";
 const IMAGE_EMBEDDING = "/assets/data/dogs_embedding.npy";
 const MODEL_DIR = "/model/sam_onnx_quantized_example.onnx";
 ```
-
-Optionally you can also export the ONNX model. Currently the example ONNX model from the notebook is saved at `/model/sam_onnx_quantized_example.onnx`.
-
-**NOTE: if you change the ONNX model by using a new checkpoint you need to also re-export the embedding.**
 
 ## ONNX multithreading with SharedArrayBuffer
 
