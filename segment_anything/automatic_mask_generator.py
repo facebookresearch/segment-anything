@@ -73,10 +73,10 @@ class SamAutomaticMaskGenerator:
             calculated the stability score.
           box_nms_thresh (float): The box IoU cutoff used by non-maximal
             suppression to filter duplicate masks.
-          crops_n_layers (int): If >0, mask prediction will be run again on
+          crop_n_layers (int): If >0, mask prediction will be run again on
             crops of the image. Sets the number of layers to run, where each
             layer has 2**i_layer number of image crops.
-          crops_nms_thresh (float): The box IoU cutoff used by non-maximal
+          crop_nms_thresh (float): The box IoU cutoff used by non-maximal
             suppression to filter duplicate masks between different crops.
           crop_overlap_ratio (float): Sets the degree to which crops overlap.
             In the first crop layer, crops will overlap by this fraction of
@@ -214,7 +214,7 @@ class SamAutomaticMaskGenerator:
             keep_by_nms = batched_nms(
                 data["boxes"].float(),
                 scores,
-                torch.zeros(len(data["boxes"])),  # categories
+                torch.zeros_like(data["boxes"][:, 0]),  # categories
                 iou_threshold=self.crop_nms_thresh,
             )
             data.filter(keep_by_nms)
@@ -251,7 +251,7 @@ class SamAutomaticMaskGenerator:
         keep_by_nms = batched_nms(
             data["boxes"].float(),
             data["iou_preds"],
-            torch.zeros(len(data["boxes"])),  # categories
+            torch.zeros_like(data["boxes"][:, 0]),  # categories
             iou_threshold=self.box_nms_thresh,
         )
         data.filter(keep_by_nms)
@@ -357,7 +357,7 @@ class SamAutomaticMaskGenerator:
         keep_by_nms = batched_nms(
             boxes.float(),
             torch.as_tensor(scores),
-            torch.zeros(len(boxes)),  # categories
+            torch.zeros_like(boxes[:, 0]),  # categories
             iou_threshold=nms_thresh,
         )
 
