@@ -98,7 +98,7 @@ class MaskDecoder(nn.Module):
             dense_prompt_embeddings=dense_prompt_embeddings,
         )
 
-        # Select the correct mask or masks for outptu
+        # Select the correct mask or masks for output
         if multimask_output:
             mask_slice = slice(1, None)
         else:
