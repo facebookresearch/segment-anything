@@ -1,4 +1,8 @@
-// Functions for handling mask output from the ONNX model
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+// All rights reserved.
+
+// This source code is licensed under the license found in the
+// LICENSE file in the root directory of this source tree.
 
 // Convert the onnx model mask prediction to ImageData
 function arrayToImageData(input: any, width: number, height: number) {

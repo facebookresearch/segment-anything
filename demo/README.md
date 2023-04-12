@@ -1,10 +1,18 @@
 ## Segment Anything Simple Web demo
 
-This **front-end only** demo shows how to load a fixed image and `.npy` file of the SAM image embedding, and run the SAM ONNX model in the browser using Web Assembly with mulithreading enabled by `SharedArrayBuffer`, Web Worker, and SIMD128.
+This **front-end only** React based web demo shows how to load a fixed image and corresponding `.npy` file of the SAM image embedding, and run the SAM ONNX model in the browser using Web Assembly with mulithreading enabled by `SharedArrayBuffer`, Web Worker, and SIMD128.
 
 <img src="https://github.com/facebookresearch/segment-anything/raw/main/assets/minidemo.gif" width="500"/>
 
 ## Run the app
+
+Install Yarn
+
+```
+npm install --g yarn
+```
+
+Build and run:
 
 ```
 yarn && yarn start
@@ -18,7 +26,7 @@ Move your cursor around to see the mask prediction update in real time.
 
 In the [ONNX Model Example notebook](https://github.com/facebookresearch/segment-anything/blob/main/notebooks/onnx_model_example.ipynb) upload the image of your choice and generate and save corresponding embedding.
 
-Initialize the predictor
+Initialize the predictor:
 
 ```python
 checkpoint = "sam_vit_h_4b8939.pth"
@@ -28,7 +36,7 @@ sam.to(device='cuda')
 predictor = SamPredictor(sam)
 ```
 
-Set the new image and export the embedding
+Set the new image and export the embedding:
 
 ```
 image = cv2.imread('src/assets/dogs.jpg')
@@ -37,7 +45,7 @@ image_embedding = predictor.get_image_embedding().cpu().numpy()
 np.save("dogs_embedding.npy", image_embedding)
 ```
 
-Save the new image and embedding in `/assets/data`.
+Save the new image and embedding in `src/assets/data`.
 
 ## Export the ONNX model
 
