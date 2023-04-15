@@ -161,7 +161,7 @@ def run_export(
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}
         # set cpu provider default
-        providers = ['CPUExecutionProvider']
+        providers = ["CPUExecutionProvider"]
         ort_session = onnxruntime.InferenceSession(output, providers=providers)
         _ = ort_session.run(None, ort_inputs)
         print("Model has successfully been run with ONNXRuntime.")
