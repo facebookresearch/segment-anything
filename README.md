@@ -123,11 +123,11 @@ image_info {
 annotation {
     "id"                    : int,              # Annotation id
     "segmentation"          : dict,             # Mask saved in COCO RLE format.
-    "bbox"                  : [x, y, w, h],     # The box around the mask, in XYWH format
+    "bbox"                  : [x, y, w, h],     # The box around the mask, where x is the left bound, y is the top bound, w is width and h is height
     "area"                  : int,              # The area in pixels of the mask
     "predicted_iou"         : float,            # The model's own prediction of the mask's quality
     "stability_score"       : float,            # A measure of the mask's quality
-    "crop_box"              : [x, y, w, h],     # The crop of the image used to generate the mask, in XYWH format
+    "crop_box"              : [x, y, w, h],     # The crop of the image used to generate the mask, where x is the left bound, y is the top bound, w is width and h is height
     "point_coords"          : [[x, y]],         # The point coordinates input to the model to generate the mask
 }
 ```
