@@ -168,7 +168,7 @@ class MLP(nn.Module):
         )
         self.sigmoid_output = sigmoid_output
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         for i, layer in enumerate(self.layers):
             x = F.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
         if self.sigmoid_output:
