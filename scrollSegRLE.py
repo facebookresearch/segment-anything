@@ -1,4 +1,4 @@
-from time import sleep
+from PIL import Image
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from pycocotools import mask as coco_mask
 import numpy as np
@@ -16,7 +16,8 @@ torch.cuda.empty_cache()
 sam_checkpoint = "sam_vit_h_4b8939.pth"
 model_type = "vit_h"
 device = "cuda"
-filePath = "../../fullScrollDataTest/06052.tif"
+fileName = "06052.tif"
+filePath = "../../fullScrollDataTest/" + fileName
 
 
 # coco_rle visualization
@@ -141,11 +142,20 @@ print(masks[0].keys())
 scaled_rle_mask = scale_rle_mask(
     masks[0]["segmentation"], 1 / scale_factor, image.shape
 )
-rle_image = visualize_rle_mask(image, scaled_rle_mask)
-show_image(rle_image)
+# rle_image = visualize_rle_mask(image, scaled_rle_mask)
+# show_image(rle_image)
 
-applied_mask = apply_mask(image, scaled_rle_mask)
-show_image(applied_mask)
+# applied_mask = apply_mask(image, scaled_rle_mask)
+# show_image(applied_mask)
 
-dilated_applied_mask = apply_dilated_mask(image, scaled_rle_mask, 2)
+dilated_applied_mask = apply_dilated_mask(image, scaled_rle_mask, 0.5)
 show_image(dilated_applied_mask)
+
+# Save the masked image as a TIFF file
+outputFilePath = "../../losslesslyCompressedScrollData/c" + fileName
+cv2.imwrite(
+    outputFilePath,
+    cv2.cvtColor(dilated_applied_mask, cv2.COLOR_RGB2BGR),
+)
+
+# compress_tiff(dilated_applied_mask, outputFilePath)
