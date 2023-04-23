@@ -24,11 +24,6 @@ def visualize_rle_mask(image, rle_mask, alpha=0.5):
     # Decode the RLE mask into a binary mask
     binary_mask = coco_mask.decode(rle_mask)
 
-    # Make sure the binary mask dimensions match the image dimensions
-    binary_mask = cv2.resize(
-        binary_mask.astype(np.uint8), (image.shape[1], image.shape[0])
-    )
-
     # Overlay the binary mask on the image
     masked_image = image.copy()
     masked_image[binary_mask == 1] = (
@@ -62,7 +57,7 @@ def show_image(image):
     plt.show()
 
 
-def scale_rle_mask(rle_mask, scale_factor):
+def scale_rle_mask(rle_mask, scale_factor, image_size=(1024, 1024)):
     # Decode the RLE mask into a binary mask
     binary_mask = coco_mask.decode(rle_mask)
 
@@ -73,6 +68,10 @@ def scale_rle_mask(rle_mask, scale_factor):
         binary_mask.astype(np.uint8),
         (new_width, new_height),
         interpolation=cv2.INTER_NEAREST,
+    )
+
+    resized_binary_mask = cv2.resize(
+        binary_mask.astype(np.uint8), (image_size[1], image_size[0])
     )
 
     # Encode the resized binary mask back into an RLE mask
@@ -88,6 +87,34 @@ def downsample_image(image, scale_factor):
     # Use cv2.resize() to downsample the image
     resized_image = cv2.resize(image, new_size, interpolation=cv2.INTER_AREA)
     return resized_image
+
+
+def apply_mask(image, rle_mask):
+    # Decode the RLE mask into a binary mask
+    binary_mask = coco_mask.decode(rle_mask)
+
+    # Invert the binary mask
+    # inverted_mask = np.logical_not(binary_mask).astype(np.uint8)
+
+    # Multiply the original image by the inverted binary mask
+    masked_image = image * np.stack([binary_mask] * 3, axis=-1)
+
+    return masked_image
+
+
+def apply_dilated_mask(image, rle_mask, dilation_percentage):
+    # Decode the RLE mask into a binary mask
+    binary_mask = coco_mask.decode(rle_mask)
+
+    # Dilate the binary mask
+    kernel_size = int(max(binary_mask.shape) * dilation_percentage / 100)
+    kernel = np.ones((kernel_size, kernel_size), np.uint8)
+    dilated_mask = cv2.dilate(binary_mask, kernel, iterations=1)
+
+    # Multiply the original image by the dilated binary mask
+    masked_image = image * np.stack([dilated_mask] * 3, axis=-1)
+
+    return masked_image
 
 
 sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
@@ -107,11 +134,18 @@ masks = mask_generator.generate(downsampled_image)
 
 print(len(masks))
 print(masks[0].keys())
-# print(masks)
 
 # rle_image = visualize_rle_mask(downsampled_image, masks[0]["segmentation"])
 # show_image(rle_image)
 
-scaled_rle_mask = scale_rle_mask(masks[0]["segmentation"], 1 / scale_factor)
+scaled_rle_mask = scale_rle_mask(
+    masks[0]["segmentation"], 1 / scale_factor, image.shape
+)
 rle_image = visualize_rle_mask(image, scaled_rle_mask)
 show_image(rle_image)
+
+applied_mask = apply_mask(image, scaled_rle_mask)
+show_image(applied_mask)
+
+dilated_applied_mask = apply_dilated_mask(image, scaled_rle_mask, 2)
+show_image(dilated_applied_mask)
