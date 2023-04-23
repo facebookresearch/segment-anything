@@ -13,10 +13,10 @@ print("CUDA is available:", torch.cuda.is_available())
 torch.cuda.empty_cache()
 
 # sam_checkpoint = "segment-anything\sam_vit_l_0b3195.pth"
-sam_checkpoint = "segment-anything\sam_vit_h_4b8939.pth"
+sam_checkpoint = "sam_vit_h_4b8939.pth"
 model_type = "vit_h"
 device = "cuda"
-filePath = "../fullScrollDataTest/06052.tif"
+filePath = "../../fullScrollDataTest/06052.tif"
 
 
 # coco_rle visualization
@@ -53,6 +53,13 @@ def visualize_rle_masks(image, rle_masks, alpha=0.5):
         ).astype(np.uint8)
 
     return masked_image
+
+
+def show_image(image):
+    plt.figure(figsize=(20, 20))
+    plt.imshow(image)
+    plt.axis("off")
+    plt.show()
 
 
 def scale_rle_mask(rle_mask, scale_factor):
@@ -102,17 +109,9 @@ print(len(masks))
 print(masks[0].keys())
 # print(masks)
 
-rle_image = visualize_rle_mask(downsampled_image, masks[0]["segmentation"])
-
-plt.figure(figsize=(20, 20))
-plt.imshow(rle_image)
-plt.axis("off")
-plt.show()
+# rle_image = visualize_rle_mask(downsampled_image, masks[0]["segmentation"])
+# show_image(rle_image)
 
 scaled_rle_mask = scale_rle_mask(masks[0]["segmentation"], 1 / scale_factor)
 rle_image = visualize_rle_mask(image, scaled_rle_mask)
-
-plt.figure(figsize=(20, 20))
-plt.imshow(rle_image)
-plt.axis("off")
-plt.show()
+show_image(rle_image)
