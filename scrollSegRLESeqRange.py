@@ -16,7 +16,7 @@ torch.cuda.empty_cache()
 sam_checkpoint = "sam_vit_h_4b8939.pth"
 model_type = "vit_h"
 device = "cuda"
-filePath = "../../fullScrollDataTest/"
+filePath = "../../fullScrollData/"
 
 
 # coco_rle visualization
@@ -125,11 +125,12 @@ mask_generator = SamAutomaticMaskGenerator(
 
 scale_factor = 0.1  # Reduce the dimensions of the original size so batch can fit in GPU memory (8GB)
 
-formatted_numbers = [
-    f"{n:05d}" for n in range(6053, 6056)
-]  # change the ranges to change which images are processed
+formatted_numbers = []
+formatted_numbers += [
+    f"{n:05d}" for n in range(0, 5)
+]  # change the range to change which images are processed
 # formatted_numbers += [
-#     f"{n:06d}" for n in range(10000, 15000)
+#     f"{n:06d}" for n in range(12500, 12505)
 # ]  # artifact of how the images are named when I downloaded them, adding a 0 in front of all the 5 digit numbers
 
 print(formatted_numbers)
@@ -151,14 +152,14 @@ for number in formatted_numbers:
     scaled_rle_mask = scale_rle_mask(
         masks[0]["segmentation"], 1 / scale_factor, image.shape
     )
-    rle_image = visualize_rle_mask(image, scaled_rle_mask)
-    show_image(rle_image)
+    # rle_image = visualize_rle_mask(image, scaled_rle_mask)
+    # show_image(rle_image)
 
     # applied_mask = apply_mask(image, scaled_rle_mask)
     # show_image(applied_mask)
 
     dilated_applied_mask = apply_dilated_mask(image, scaled_rle_mask, 0.5)
-    show_image(dilated_applied_mask)
+    # show_image(dilated_applied_mask)
 
     # Save the masked image as a TIFF file
     outputFilePath = "../../losslesslyCompressedScrollData/c" + number + ".tif"

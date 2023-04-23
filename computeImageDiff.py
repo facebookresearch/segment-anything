@@ -12,7 +12,7 @@ if image1.shape != image2.shape:
     raise ValueError("The two images must have the same size and number of channels.")
 
 # Compute the absolute difference between the two images
-diff_image = cv2.absdiff(image1, image2)
+diff_image = cv2.absdiff(image1, image2) * 100
 
 # Save the resulting image
 outputFilePath = "../../comparisonScrollData/comp" + fileName

@@ -12,6 +12,10 @@ print("Torchvision version:", torchvision.__version__)
 print("CUDA is available:", torch.cuda.is_available())
 torch.cuda.empty_cache()
 
+"""
+Development Script, scrollSegRLESeqRange.py is the most up to date script
+"""
+
 # sam_checkpoint = "segment-anything\sam_vit_l_0b3195.pth"
 sam_checkpoint = "segment-anything\sam_vit_h_4b8939.pth"
 model_type = "vit_h"
