@@ -12,7 +12,21 @@ from typing import Tuple, Type
 
 from .common import MLPBlock
 
+# Convention
+# Sparse: point/text/bbox-emb
+# Dense: image + input-mask-emb
 
+# Transformer, including
+# (1) a stack of 2-way-attention block sparse to dense, 
+#   for each block
+#   - (a) self-attention on sparse
+#   - (b) cross attention from sparse to dense
+#   - (c) MLP on sparse
+#   - (d) cross attention from dense to sparse
+#   - return dense, sparse
+
+# (2) a normal attention from sparse to dense
+# (*): layer-norm is used between layers
 class TwoWayTransformer(nn.Module):
     def __init__(
         self,
@@ -24,8 +38,9 @@ class TwoWayTransformer(nn.Module):
         attention_downsample_rate: int = 2,
     ) -> None:
         """
-        A transformer decoder that attends to an input image using
-        queries whose positional embedding is supplied.
+        A transformer decoder that attends to 
+        an input image using queries whose positional 
+        embedding is supplied.
 
         Args:
           depth (int): number of layers in the transformer
@@ -55,7 +70,9 @@ class TwoWayTransformer(nn.Module):
             )
 
         self.final_attn_token_to_image = Attention(
-            embedding_dim, num_heads, downsample_rate=attention_downsample_rate
+            embedding_dim, 
+            num_heads, 
+            downsample_rate=attention_downsample_rate
         )
         self.norm_final_attn = nn.LayerNorm(embedding_dim)
 
@@ -84,22 +101,23 @@ class TwoWayTransformer(nn.Module):
         image_pe = image_pe.flatten(2).permute(0, 2, 1)
 
         # Prepare queries
-        queries = point_embedding
-        keys = image_embedding
+        queries = point_embedding # apply self-attend on queries
+        keys = image_embedding    # 
 
         # Apply transformer blocks and final layernorm
         for layer in self.layers:
             queries, keys = layer(
                 queries=queries,
                 keys=keys,
-                query_pe=point_embedding,
+                query_pe=point_embedding, # use the EMB as PE
                 key_pe=image_pe,
             )
 
         # Apply the final attention layer from the points to the image
         q = queries + point_embedding
         k = keys + image_pe
-        attn_out = self.final_attn_token_to_image(q=q, k=k, v=keys)
+        attn_out = self.final_attn_token_to_image(
+            q=q, k=k, v=keys)
         queries = queries + attn_out
         queries = self.norm_final_attn(queries)
 
@@ -117,10 +135,11 @@ class TwoWayAttentionBlock(nn.Module):
         skip_first_layer_pe: bool = False,
     ) -> None:
         """
-        A transformer block with four layers: (1) self-attention of sparse
-        inputs, (2) cross attention of sparse inputs to dense inputs, (3) mlp
-        block on sparse inputs, and (4) cross attention of dense inputs to sparse
-        inputs.
+        A transformer block with four layers: 
+        (1) self-attention of sparse inputs, 
+        (2) cross attention of sparse inputs to dense inputs, 
+        (3) mlp block on sparse inputs, 
+        (4) cross attention of dense inputs to sparse inputs.
 
         Arguments:
           embedding_dim (int): the channel dimension of the embeddings
@@ -152,6 +171,8 @@ class TwoWayAttentionBlock(nn.Module):
         self, queries: Tensor, keys: Tensor, query_pe: Tensor, key_pe: Tensor
     ) -> Tuple[Tensor, Tensor]:
         # Self attention block
+        
+        # True for the first layer -> self-attention
         if self.skip_first_layer_pe:
             queries = self.self_attn(q=queries, k=queries, v=queries)
         else:
@@ -164,6 +185,12 @@ class TwoWayAttentionBlock(nn.Module):
         q = queries + query_pe
         k = keys + key_pe
         attn_out = self.cross_attn_token_to_image(q=q, k=k, v=keys)
+        #  attn_out = self.cross_attn_token_to_image(
+        #           q=q,             (point emb + pos)
+        #           k=keys + key_pe, (why need pos. in key?) 
+        #           v=keys           (this actually the image_emb, from above)
+        # )
+
         queries = queries + attn_out
         queries = self.norm2(queries)
 
@@ -172,7 +199,8 @@ class TwoWayAttentionBlock(nn.Module):
         queries = queries + mlp_out
         queries = self.norm3(queries)
 
-        # Cross attention block, image embedding attending to tokens
+        # Cross attention block, image embedding 
+        # attending to tokens
         q = queries + query_pe
         k = keys + key_pe
         attn_out = self.cross_attn_image_to_token(q=k, k=q, v=queries)
@@ -184,7 +212,7 @@ class TwoWayAttentionBlock(nn.Module):
 
 class Attention(nn.Module):
     """
-    An attention layer that allows for downscaling the size of the embedding
+    An attention layer that allows for down-scaling the size of the embedding
     after projection to queries, keys, and values.
     """
 
@@ -238,3 +266,45 @@ class Attention(nn.Module):
         out = self.out_proj(out)
 
         return out
+    
+
+# (TwoWayTransformer(
+#   (layers): ModuleList(
+#     (0-1): 2 x TwoWayAttentionBlock(
+#       (self_attn): Attention(
+#         (q_proj): Linear(in_features=256, out_features=256, bias=True)
+#         (k_proj): Linear(in_features=256, out_features=256, bias=True)
+#         (v_proj): Linear(in_features=256, out_features=256, bias=True)
+#         (out_proj): Linear(in_features=256, out_features=256, bias=True)
+#       )
+#       (norm1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+#       (cross_attn_token_to_image): Attention(
+#         (q_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (k_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (v_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (out_proj): Linear(in_features=128, out_features=256, bias=True)
+#       )
+#       (norm2): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+#       (mlp): MLPBlock(
+#         (lin1): Linear(in_features=256, out_features=2048, bias=True)
+#         (lin2): Linear(in_features=2048, out_features=256, bias=True)
+#         (act): ReLU()
+#       )
+#       (norm3): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+#       (norm4): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+#       (cross_attn_image_to_token): Attention(
+#         (q_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (k_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (v_proj): Linear(in_features=256, out_features=128, bias=True)
+#         (out_proj): Linear(in_features=128, out_features=256, bias=True)
+#       )
+#     )
+#   )
+#   (final_attn_token_to_image): Attention(
+#     (q_proj): Linear(in_features=256, out_features=128, bias=True)
+#     (k_proj): Linear(in_features=256, out_features=128, bias=True)
+#     (v_proj): Linear(in_features=256, out_features=128, bias=True)
+#     (out_proj): Linear(in_features=128, out_features=256, bias=True)
+#   )
+#   (norm_final_attn): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+# ),)

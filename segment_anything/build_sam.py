@@ -88,7 +88,7 @@ def _build_sam(
             num_multimask_outputs=3,
             transformer=TwoWayTransformer(
                 depth=2,
-                embedding_dim=prompt_embed_dim,
+                embedding_dim=prompt_embed_dim, # 256
                 mlp_dim=2048,
                 num_heads=8,
             ),

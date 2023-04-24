@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+  		"python.defaultInterpreterPath": "/Users/hung.nh/miniconda3/envs/fbrs",
+	}
+}
