@@ -233,9 +233,7 @@ def main(args: argparse.Namespace) -> None:
             continue
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        print(f"read image...")
         masks = generator.generate(image)
-        print(f"generator image...")
 
         base = os.path.basename(t)
         base = os.path.splitext(base)[0]
