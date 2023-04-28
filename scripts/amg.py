@@ -167,7 +167,7 @@ def write_masks_to_folder(masks: List[Dict[str, Any]], image: np.ndarray, mattin
         cv2.imwrite(os.path.join(path, filename), mask * 255)
 
         if matting:
-            matting_filename = f"{i}matting.png"
+            matting_filename = f"{i}_matting.png"
             matting_image = image * mask[:, :, np.newaxis]
             cv2.imwrite(os.path.join(path, matting_filename), matting_image)
 
