@@ -86,20 +86,35 @@ See the [example notebook](https://github.com/facebookresearch/segment-anything/
 
 The `demo/` folder has a simple one page React app which shows how to run mask prediction with the exported ONNX model in a web browser with multithreading. Please see [`demo/README.md`](https://github.com/facebookresearch/segment-anything/blob/main/demo/README.md) for more details.
 
-## <a name="Models"></a>Model Checkpoints
+## <a name="Models"></a>Model
 
-Three model versions of the model are available with different backbone sizes. These models can be instantiated by running
+### Checkpoints
+
+Three model versions of the SAM Model are available with different Vision Transformer (ViT) backbone sizes: small or *base* (B), *large* (L), and *huge* (H). Click the links below to download the checkpoint for the corresponding model type.
+
+- **`default` or `vit_h`: [ViT-H SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)**
+- `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth)
+- `vit_b`: [ViT-B SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
+
+These models can be instantiated by running
 
 ```
 from segment_anything import sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 ```
 
-Click the links below to download the checkpoint for the corresponding model type.
+### Model Comparison
 
-- **`default` or `vit_h`: [ViT-H SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)**
-- `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth)
-- `vit_b`: [ViT-B SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
+
+In the *Figure 13 (right)* from our [`Paper`](https://ai.facebook.com/research/publications/segment-anything/), displayed next, we have a comparison of ViT-B, ViT-L, and ViT-H image encoders, with ViT-H exhibiting significant improvement over ViT-B and modest gains over ViT-L. 
+
+<img src="assets/comparison_sam_backbones.png?raw=true" width="70%" />
+
+>**Figure 13** (Right): Scaling SAM’s image
+encoder shows meaningful, yet saturating gains. Nevertheless, smaller image encoders may be preferred in certain settings.
+
+Consult our [`Paper`](https://ai.facebook.com/research/publications/segment-anything/) for further details on the SAM architecture, and consult reference [[`47`](https://openaccess.thecvf.com/content/CVPR2022/html/He_Masked_Autoencoders_Are_Scalable_Vision_Learners_CVPR_2022_paper.html)] in our [`Paper`](https://ai.facebook.com/research/publications/segment-anything/) for further details on the adopted backbones.
+
 
 ## Dataset
 
