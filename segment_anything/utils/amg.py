@@ -313,6 +313,13 @@ def remove_big_regions(
     mask = np.isin(regions, fill_labels)
     return mask, True
 
+def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
+    from pycocotools import mask as mask_utils  # type: ignore
+
+    h, w = uncompressed_rle["size"]
+    rle = mask_utils.frPyObjects(uncompressed_rle, h, w)
+    rle["counts"] = rle["counts"].decode("utf-8")  # Necessary to serialize with json
+    return rle
 
 
 def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
