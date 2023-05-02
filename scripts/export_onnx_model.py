@@ -150,7 +150,7 @@ def run_export(
                 tuple(dummy_inputs.values()),
                 f,
                 export_params=True,
-                verbose=False,
+                verbose=True,
                 opset_version=opset,
                 do_constant_folding=True,
                 input_names=list(dummy_inputs.keys()),
