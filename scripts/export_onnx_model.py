@@ -140,6 +140,8 @@ def run_export(
 
     output_names = ["masks", "iou_predictions", "low_res_masks"]
 
+    assert opset>=11, 'The ONNX opset version must be >=11'
+
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
