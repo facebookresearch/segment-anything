@@ -101,6 +101,29 @@ Click the links below to download the checkpoint for the corresponding model typ
 - `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth)
 - `vit_b`: [ViT-B SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth)
 
+### Custom model
+
+To train a custom model, you can initialize a model with the following code:
+
+```python
+from segment_anything import build_sam
+
+sam = build_sam(checkpoint=None, image_size=512, prompt_embed_dim=128, vit_patch_size=16)
+```
+
+The resulting object will be an instance of `segment_anything.modeling.sam.Sam` 
+which is a sublclass of `torch.nn.Module`. The model will contain an `image_encoder`,
+`prompt_encoder`, and `mask_decoder` attributes and `forward` function in the `torch.no_grad()` mode.
+
+Use explicit model type with a custom input image size:
+```python
+from segment_anything import build_sam_vit_h, build_sam_vit_l, build_sam_vit_b
+
+sam = build_sam_vit_h(checkpoint=None, image_size=1024)
+sam = build_sam_vit_l(checkpoint=None, image_size=768)
+sam = build_sam_vit_b(checkpoint=None, image_size=512)
+```
+
 ## Dataset
 
 See [here](https://ai.facebook.com/datasets/segment-anything/) for an overview of the datastet. The dataset can be downloaded [here](https://ai.facebook.com/datasets/segment-anything-downloads/). By downloading the datasets you agree that you have read and accepted the terms of the SA-1B Dataset Research License.
