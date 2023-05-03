@@ -8,11 +8,11 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from typing import Any, Dict, List, Tuple
+from segment_anything.modeling.image_encoder import ImageEncoderViT
+from segment_anything.modeling.mask_decoder import MaskDecoder
+from segment_anything.modeling.prompt_encoder import PromptEncoder
 
-from .image_encoder import ImageEncoderViT
-from .mask_decoder import MaskDecoder
-from .prompt_encoder import PromptEncoder
+from typing import Any, Dict, List, Tuple
 
 
 class Sam(nn.Module):

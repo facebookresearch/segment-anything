@@ -6,9 +6,15 @@
 
 import torch
 
-from functools import partial
+from segment_anything.modeling import (
+    ImageEncoderViT,
+    MaskDecoder,
+    PromptEncoder,
+    Sam,
+    TwoWayTransformer,
+)
 
-from .modeling import ImageEncoderViT, MaskDecoder, PromptEncoder, Sam, TwoWayTransformer
+from functools import partial
 
 
 def build_sam_vit_h(checkpoint=None):

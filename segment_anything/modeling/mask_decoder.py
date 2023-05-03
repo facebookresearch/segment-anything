@@ -8,9 +8,9 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from typing import List, Tuple, Type
+from segment_anything.modeling.common import LayerNorm2d
 
-from .common import LayerNorm2d
+from typing import List, Tuple, Type
 
 
 class MaskDecoder(nn.Module):

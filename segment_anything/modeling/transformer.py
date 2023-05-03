@@ -7,10 +7,10 @@
 import torch
 from torch import Tensor, nn
 
+from segment_anything.modeling.common import MLPBlock
+
 import math
 from typing import Tuple, Type
-
-from .common import MLPBlock
 
 
 class TwoWayTransformer(nn.Module):

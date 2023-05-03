@@ -8,9 +8,9 @@ import numpy as np
 import torch
 from torch import nn
 
-from typing import Any, Optional, Tuple, Type
+from segment_anything.modeling.common import LayerNorm2d
 
-from .common import LayerNorm2d
+from typing import Any, Optional, Tuple, Type
 
 
 class PromptEncoder(nn.Module):
