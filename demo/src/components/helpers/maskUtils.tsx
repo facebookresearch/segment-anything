@@ -20,7 +20,7 @@ function arrayToImageData(input: any, width: number, height: number) {
       arr[4 * i + 3] = a;
     }
   }
-  return new ImageData(arr, height, width);
+  return new ImageData(arr, width, height);
 }
 
 // Use a Canvas element to produce an image from ImageData
