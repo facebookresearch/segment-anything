@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-import torch.nn as nn
 
 from segment_anything import sam_model_registry
 from segment_anything.utils.onnx import ImageEncoderOnnxModel
@@ -25,7 +24,10 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument(
-    "--checkpoint", type=str, required=True, help="The path to the SAM model checkpoint."
+    "--checkpoint",
+    type=str,
+    required=True,
+    help="The path to the SAM model checkpoint.",
 )
 
 parser.add_argument(
@@ -37,6 +39,15 @@ parser.add_argument(
     type=str,
     required=True,
     help="In ['default', 'vit_h', 'vit_l', 'vit_b']. Which type of SAM model to export.",
+)
+
+parser.add_argument(
+    "--use-preprocess",
+    action="store_true",
+    help=(
+        "Replaces the model's predicted mask quality score with the stability "
+        "score calculated on the low resolution masks using an offset of 1.0. "
+    ),
 )
 
 parser.add_argument(
@@ -70,6 +81,7 @@ def run_export(
     model_type: str,
     checkpoint: str,
     output: str,
+    use_preprocess: bool,
     opset: int,
     gelu_approximate: bool = False,
 ):
@@ -78,6 +90,7 @@ def run_export(
 
     onnx_model = ImageEncoderOnnxModel(
         model=sam,
+        use_preprocess=use_preprocess,
         pixel_mean=[123.675, 116.28, 103.53],
         pixel_std=[58.395, 57.12, 57.375],
     )
@@ -88,7 +101,20 @@ def run_export(
                 m.approximate = "tanh"
 
     image_size = sam.image_encoder.img_size
-    dummy_input = {"input_image": torch.randn(image_size, dtype=torch.float)}
+    if use_preprocess:
+        dummy_input = {
+            "input_image": torch.randn((image_size, image_size, 3), dtype=torch.float)
+        }
+        dynamic_axes = {
+            "input_image": {0: "image_height", 1: "image_width"},
+        }
+    else:
+        dummy_input = {
+            "input_image": torch.randn(
+                (1, 3, image_size, image_size), dtype=torch.float
+            )
+        }
+        dynamic_axes = None
 
     _ = onnx_model(**dummy_input)
 
@@ -109,6 +135,7 @@ def run_export(
                 do_constant_folding=True,
                 input_names=list(dummy_input.keys()),
                 output_names=output_names,
+                dynamic_axes=dynamic_axes,
             )
 
     if onnxruntime_exists:
@@ -123,12 +150,13 @@ def to_numpy(tensor):
     return tensor.cpu().numpy()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args()
     run_export(
         model_type=args.model_type,
         checkpoint=args.checkpoint,
-        output=args.ouput,
+        output=args.output,
+        use_preprocess=args.use_preprocess,
         opset=args.opset,
         gelu_approximate=args.gelu_approximate,
     )

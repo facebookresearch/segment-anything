@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from typing import Tuple, List
+from typing import List, Tuple
 
 from ..modeling import Sam
 from .amg import calculate_stability_score
@@ -48,32 +48,43 @@ class SamOnnxModel(nn.Module):
         transformed_size = torch.floor(transformed_size + 0.5).to(torch.int64)
         return transformed_size
 
-    def _embed_points(self, point_coords: torch.Tensor, point_labels: torch.Tensor) -> torch.Tensor:
+    def _embed_points(
+        self, point_coords: torch.Tensor, point_labels: torch.Tensor
+    ) -> torch.Tensor:
         point_coords = point_coords + 0.5
         point_coords = point_coords / self.img_size
         point_embedding = self.model.prompt_encoder.pe_layer._pe_encoding(point_coords)
         point_labels = point_labels.unsqueeze(-1).expand_as(point_embedding)
 
         point_embedding = point_embedding * (point_labels != -1)
-        point_embedding = point_embedding + self.model.prompt_encoder.not_a_point_embed.weight * (
-            point_labels == -1
+        point_embedding = (
+            point_embedding
+            + self.model.prompt_encoder.not_a_point_embed.weight * (point_labels == -1)
         )
 
         for i in range(self.model.prompt_encoder.num_point_embeddings):
-            point_embedding = point_embedding + self.model.prompt_encoder.point_embeddings[
-                i
-            ].weight * (point_labels == i)
+            point_embedding = (
+                point_embedding
+                + self.model.prompt_encoder.point_embeddings[i].weight
+                * (point_labels == i)
+            )
 
         return point_embedding
 
-    def _embed_masks(self, input_mask: torch.Tensor, has_mask_input: torch.Tensor) -> torch.Tensor:
-        mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(input_mask)
+    def _embed_masks(
+        self, input_mask: torch.Tensor, has_mask_input: torch.Tensor
+    ) -> torch.Tensor:
+        mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(
+            input_mask
+        )
         mask_embedding = mask_embedding + (
             1 - has_mask_input
         ) * self.model.prompt_encoder.no_mask_embed.weight.reshape(1, -1, 1, 1)
         return mask_embedding
 
-    def mask_postprocessing(self, masks: torch.Tensor, orig_im_size: torch.Tensor) -> torch.Tensor:
+    def mask_postprocessing(
+        self, masks: torch.Tensor, orig_im_size: torch.Tensor
+    ) -> torch.Tensor:
         masks = F.interpolate(
             masks,
             size=(self.img_size, self.img_size),
@@ -81,7 +92,9 @@ class SamOnnxModel(nn.Module):
             align_corners=False,
         )
 
-        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size).to(torch.int64)
+        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size).to(
+            torch.int64
+        )
         masks = masks[..., : prepadded_size[0], : prepadded_size[1]]  # type: ignore
 
         orig_im_size = orig_im_size.to(torch.int64)
@@ -145,30 +158,46 @@ class SamOnnxModel(nn.Module):
 
 
 class ImageEncoderOnnxModel(nn.Module):
-    def __init__(self,
-                 model: Sam,
-                 pixel_mean: List[float] = [123.675, 116.28, 103.53],
-                 pixel_std: List[float] = [58.395, 57.12, 57.375],
-                 ):
+    """
+    This model should not be called directly, but is used in ONNX export.
+    It combines the image encoder of Sam, with some functions modified to enable
+    model tracing. Also supports extra options controlling what information. See
+    the ONNX export script for details.
+    """
+
+    def __init__(
+        self,
+        model: Sam,
+        use_preprocess: bool,
+        pixel_mean: List[float] = [123.675, 116.28, 103.53],
+        pixel_std: List[float] = [58.395, 57.12, 57.375],
+    ):
         super().__init__()
-        self.pixel_mean = pixel_mean
-        self.pixel_std = pixel_std
+        self.use_preprocess = use_preprocess
+        self.pixel_mean = torch.tensor(pixel_mean, dtype=torch.float)
+        self.pixel_std = torch.tensor(pixel_std, dtype=torch.float)
         self.image_encoder = model.image_encoder
 
     @torch.no_grad()
     def forward(self, input_image: torch.Tensor):
-        input_images = self.preprocess(input_image)
-        image_embeddings = self.image_encoder(input_images)
+        if self.use_preprocess:
+            input_image = self.preprocess(input_image)
+        image_embeddings = self.image_encoder(input_image)
         return image_embeddings
 
     def preprocess(self, x: torch.Tensor) -> torch.Tensor:
-        """Normalize pixel values and pad to a square input."""
         # Normalize colors
         x = (x - self.pixel_mean) / self.pixel_std
+
+        # permute channels
+        x = torch.permute(x, (2, 0, 1))
 
         # Pad
         h, w = x.shape[-2:]
         padh = self.image_encoder.img_size - h
         padw = self.image_encoder.img_size - w
         x = F.pad(x, (0, padw, 0, padh))
+
+        # expand channels
+        x = torch.unsqueeze(x, 0)
         return x
