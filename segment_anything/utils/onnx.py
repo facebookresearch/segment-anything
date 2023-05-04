@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from typing import Tuple
+from typing import Tuple, List
 
 from ..modeling import Sam
 from .amg import calculate_stability_score
@@ -142,3 +142,33 @@ class SamOnnxModel(nn.Module):
             return upscaled_masks, scores, stability_scores, areas, masks
 
         return upscaled_masks, scores, masks
+
+
+class ImageEncoderOnnxModel(nn.Module):
+    def __init__(self,
+                 model: Sam,
+                 pixel_mean: List[float] = [123.675, 116.28, 103.53],
+                 pixel_std: List[float] = [58.395, 57.12, 57.375],
+                 ):
+        super().__init__()
+        self.pixel_mean = pixel_mean
+        self.pixel_std = pixel_std
+        self.image_encoder = model.image_encoder
+
+    @torch.no_grad()
+    def forward(self, input_image: torch.Tensor):
+        input_images = self.preprocess(input_image)
+        image_embeddings = self.image_encoder(input_images)
+        return image_embeddings
+
+    def preprocess(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize pixel values and pad to a square input."""
+        # Normalize colors
+        x = (x - self.pixel_mean) / self.pixel_std
+
+        # Pad
+        h, w = x.shape[-2:]
+        padh = self.image_encoder.img_size - h
+        padw = self.image_encoder.img_size - w
+        x = F.pad(x, (0, padw, 0, padh))
+        return x
