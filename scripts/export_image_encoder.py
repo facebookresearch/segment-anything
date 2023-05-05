@@ -5,10 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
+import numpy as np
 
 from segment_anything import sam_model_registry
 from segment_anything.utils.onnx import ImageEncoderOnnxModel
 
+import os
 import argparse
 import warnings
 
@@ -123,12 +125,14 @@ def run_export(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
-        with open(output, "wb") as f:
-            print(f"Exporting onnx model to {output}...")
+        print(f"Exporting onnx model to {output}...")
+        if model_type == "vit_h":
+            output_dir, output_file = os.path.split(output)
+            os.makedirs(output_dir, mode=0o777, exist_ok=True)
             torch.onnx.export(
                 onnx_model,
                 tuple(dummy_input.values()),
-                f,
+                output,
                 export_params=True,
                 verbose=False,
                 opset_version=opset,
@@ -137,11 +141,38 @@ def run_export(
                 output_names=output_names,
                 dynamic_axes=dynamic_axes,
             )
+        else:
+            with open(output, "wb") as f:
+                torch.onnx.export(
+                    onnx_model,
+                    tuple(dummy_input.values()),
+                    f,
+                    export_params=True,
+                    verbose=False,
+                    opset_version=opset,
+                    do_constant_folding=True,
+                    input_names=list(dummy_input.keys()),
+                    output_names=output_names,
+                    dynamic_axes=dynamic_axes,
+                )
 
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_input.items()}
         providers = ["CPUExecutionProvider"]
-        ort_session = onnxruntime.InferenceSession(output, providers=providers)
+
+        if model_type == "vit_h":
+            session_option = onnxruntime.SessionOptions()
+            ort_session = onnxruntime.InferenceSession(output, providers=providers)
+            param_file = os.listdir(output_dir)
+            param_file.remove(output_file)
+            for i, layer in enumerate(param_file):
+                with open(os.path.join(output_dir, layer), "rb") as fp:
+                    weights = np.frombuffer(fp.read(), dtype=np.float32)
+                    weights = onnxruntime.OrtValue.ortvalue_from_numpy(weights)
+                    session_option.add_initializer(layer, weights)
+        else:
+            ort_session = onnxruntime.InferenceSession(output, providers=providers)
+
         _ = ort_session.run(None, ort_inputs)
         print("Model has successfully been run with ONNXRuntime.")
 
