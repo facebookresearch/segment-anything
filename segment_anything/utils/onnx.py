@@ -55,7 +55,7 @@ class SamOnnxModel(nn.Module):
         point_labels = point_labels.unsqueeze(-1).expand_as(point_embedding)
 
         point_embedding = point_embedding * (point_labels != -1)
-        point_embedding = point_embedding+ self.model.prompt_encoder.not_a_point_embed.weight * (
+        point_embedding = point_embedding + self.model.prompt_encoder.not_a_point_embed.weight * (
             point_labels == -1
         )
 
