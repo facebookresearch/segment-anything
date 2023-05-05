@@ -48,43 +48,32 @@ class SamOnnxModel(nn.Module):
         transformed_size = torch.floor(transformed_size + 0.5).to(torch.int64)
         return transformed_size
 
-    def _embed_points(
-        self, point_coords: torch.Tensor, point_labels: torch.Tensor
-    ) -> torch.Tensor:
+    def _embed_points(self, point_coords: torch.Tensor, point_labels: torch.Tensor) -> torch.Tensor:
         point_coords = point_coords + 0.5
         point_coords = point_coords / self.img_size
         point_embedding = self.model.prompt_encoder.pe_layer._pe_encoding(point_coords)
         point_labels = point_labels.unsqueeze(-1).expand_as(point_embedding)
 
         point_embedding = point_embedding * (point_labels != -1)
-        point_embedding = (
-            point_embedding
-            + self.model.prompt_encoder.not_a_point_embed.weight * (point_labels == -1)
+        point_embedding = point_embedding+ self.model.prompt_encoder.not_a_point_embed.weight * (
+                point_labels == -1
         )
 
         for i in range(self.model.prompt_encoder.num_point_embeddings):
-            point_embedding = (
-                point_embedding
-                + self.model.prompt_encoder.point_embeddings[i].weight
-                * (point_labels == i)
-            )
+            point_embedding = point_embedding + self.model.prompt_encoder.point_embeddings[
+                i
+            ].weight * (point_labels == i)
 
         return point_embedding
 
-    def _embed_masks(
-        self, input_mask: torch.Tensor, has_mask_input: torch.Tensor
-    ) -> torch.Tensor:
-        mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(
-            input_mask
-        )
+    def _embed_masks(self, input_mask: torch.Tensor, has_mask_input: torch.Tensor) -> torch.Tensor:
+        mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(input_mask)
         mask_embedding = mask_embedding + (
             1 - has_mask_input
         ) * self.model.prompt_encoder.no_mask_embed.weight.reshape(1, -1, 1, 1)
         return mask_embedding
 
-    def mask_postprocessing(
-        self, masks: torch.Tensor, orig_im_size: torch.Tensor
-    ) -> torch.Tensor:
+    def mask_postprocessing(self, masks: torch.Tensor, orig_im_size: torch.Tensor) -> torch.Tensor:
         masks = F.interpolate(
             masks,
             size=(self.img_size, self.img_size),
@@ -92,9 +81,7 @@ class SamOnnxModel(nn.Module):
             align_corners=False,
         )
 
-        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size).to(
-            torch.int64
-        )
+        prepadded_size = self.resize_longest_image_size(orig_im_size, self.img_size).to(torch.int64)
         masks = masks[..., : prepadded_size[0], : prepadded_size[1]]  # type: ignore
 
         orig_im_size = orig_im_size.to(torch.int64)
