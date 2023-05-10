@@ -46,10 +46,7 @@ parser.add_argument(
 parser.add_argument(
     "--use-preprocess",
     action="store_true",
-    help=(
-        "Replaces the model's predicted mask quality score with the stability "
-        "score calculated on the low resolution masks using an offset of 1.0. "
-    ),
+    help="Whether to preprocess the image by resizing, standardizing, etc.",
 )
 
 parser.add_argument(
