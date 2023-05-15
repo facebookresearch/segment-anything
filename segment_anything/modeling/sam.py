@@ -43,8 +43,25 @@ class Sam(nn.Module):
         self.image_encoder = image_encoder
         self.prompt_encoder = prompt_encoder
         self.mask_decoder = mask_decoder
-        self.register_buffer("pixel_mean", torch.Tensor(pixel_mean).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.Tensor(pixel_std).view(-1, 1, 1), False)
+
+        if torch.cuda.is_available():
+            dev = "cuda:0"
+        else:
+            dev = "cpu"
+        device = torch.device(dev)
+
+        self.image_encoder = self.image_encoder.to(device)
+        self.prompt_encoder = self.prompt_encoder.to(device)
+        self.mask_decoder = self.mask_decoder.to(device)
+
+        pixel_mean = torch.Tensor(pixel_mean).view(-1, 1, 1)
+        pixel_std = torch.Tensor(pixel_std).view(-1, 1, 1)
+
+        pixel_mean = pixel_mean.to(device)
+        pixel_std = pixel_std.to(device)
+
+        self.register_buffer("pixel_mean", pixel_mean, False)
+        self.register_buffer("pixel_std", pixel_std, False)
 
     @property
     def device(self) -> Any:

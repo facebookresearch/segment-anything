@@ -257,7 +257,13 @@ class SamPredictor:
 
     @property
     def device(self) -> torch.device:
-        return self.model.device
+        if torch.cuda.is_available():
+            dev = "cuda:0"
+        else:
+            dev = "cpu"
+        device = torch.device(dev)
+
+        return device
 
     def reset_image(self) -> None:
         """Resets the currently set image."""
