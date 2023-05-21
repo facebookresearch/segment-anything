@@ -101,7 +101,7 @@ def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
     ), "Batched iteration must have inputs of all the same size."
     n_batches = len(args[0]) // batch_size + int(len(args[0]) % batch_size != 0)
     for b in range(n_batches):
-        yield [arg[b * batch_size : (b + 1) * batch_size] for arg in args]
+        yield [arg[b * batch_size: (b + 1) * batch_size] for arg in args]
 
 
 def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
@@ -142,7 +142,7 @@ def rle_to_mask(rle: Dict[str, Any]) -> np.ndarray:
     idx = 0
     parity = False
     for count in rle["counts"]:
-        mask[idx : idx + count] = parity
+        mask[idx: idx + count] = parity
         idx += count
         parity ^= True
     mask = mask.reshape(w, h)

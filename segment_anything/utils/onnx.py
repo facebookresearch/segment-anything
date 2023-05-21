@@ -55,22 +55,18 @@ class SamOnnxModel(nn.Module):
         point_labels = point_labels.unsqueeze(-1).expand_as(point_embedding)
 
         point_embedding = point_embedding * (point_labels != -1)
-        point_embedding = point_embedding + self.model.prompt_encoder.not_a_point_embed.weight * (
-            point_labels == -1
-        )
+        point_embedding += self.model.prompt_encoder.not_a_point_embed.weight * (point_labels == -1)
 
         for i in range(self.model.prompt_encoder.num_point_embeddings):
-            point_embedding = point_embedding + self.model.prompt_encoder.point_embeddings[
-                i
-            ].weight * (point_labels == i)
+            embd_wgt = self.model.prompt_encoder.point_embeddings[i].weight
+            point_embedding += embd_wgt * (point_labels == i)
 
         return point_embedding
 
     def _embed_masks(self, input_mask: torch.Tensor, has_mask_input: torch.Tensor) -> torch.Tensor:
         mask_embedding = has_mask_input * self.model.prompt_encoder.mask_downscaling(input_mask)
-        mask_embedding = mask_embedding + (
-            1 - has_mask_input
-        ) * self.model.prompt_encoder.no_mask_embed.weight.reshape(1, -1, 1, 1)
+        embd_wgt = self.model.prompt_encoder.no_mask_embed.weight.reshape(1, -1, 1, 1)
+        mask_embedding += embd_wgt * (1 - has_mask_input)
         return mask_embedding
 
     def mask_postprocessing(self, masks: torch.Tensor, orig_im_size: torch.Tensor) -> torch.Tensor:
@@ -94,9 +90,8 @@ class SamOnnxModel(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # Determine if we should return the multiclick mask or not from the number of points.
         # The reweighting is used to avoid control flow.
-        score_reweight = torch.tensor(
-            [[1000] + [0] * (self.model.mask_decoder.num_mask_tokens - 1)]
-        ).to(iou_preds.device)
+        data = [1000] + [0] * (self.model.mask_decoder.num_mask_tokens - 1)
+        score_reweight = torch.tensor([data]).to(iou_preds.device)
         score = iou_preds + (num_points - 2.5) * score_reweight
         best_idx = torch.argmax(score, dim=1)
         masks = masks[torch.arange(masks.shape[0]), best_idx, :, :].unsqueeze(1)
