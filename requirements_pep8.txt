@@ -1,0 +1,5 @@
+flake8
+pep8-naming
+flake8-expression-complexity
+flake8-cognitive-complexity
+flake8-use-fstring
