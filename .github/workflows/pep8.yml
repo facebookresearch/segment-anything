@@ -1,0 +1,27 @@
+name: PEP8
+
+on:
+  pull_request:
+    types: [ opened, synchronize ]
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Install Python dependencies
+        uses: py-actions/py-dependency-install@v4
+        with:
+          path: ./requirements_pep8.txt
+
+      - name: Run flake8
+        run: |
+          flake8 .
