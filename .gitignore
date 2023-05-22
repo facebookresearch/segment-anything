@@ -19,6 +19,9 @@ wheels/
 *.ts
 model_ts*.txt
 
+# python virtual environment
+venv
+
 # onnx models
 *.onnx
 
