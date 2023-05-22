@@ -21,20 +21,20 @@ The code requires `python>=3.8`, as well as `pytorch>=1.7` and `torchvision>=0.8
 
 Install Segment Anything:
 
-```
+```shell
 pip install git+https://github.com/facebookresearch/segment-anything.git
 ```
 
 or clone the repository locally and install with
 
-```
+```shell
 git clone git@github.com:facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 ```
 
 The following optional dependencies are necessary for mask post-processing, saving masks in COCO format, the example notebooks, and exporting the model in ONNX format. `jupyter` is also required to run the example notebooks.
 
-```
+```shell
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
 ```
 
@@ -42,7 +42,7 @@ pip install opencv-python pycocotools matplotlib onnxruntime onnx
 
 First download a [model checkpoint](#model-checkpoints). Then the model can be used in just a few lines to get masks from a given prompt:
 
-```
+```python
 from segment_anything import SamPredictor, sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 predictor = SamPredictor(sam)
@@ -52,7 +52,7 @@ masks, _, _ = predictor.predict(<input_prompts>)
 
 or generate masks for an entire image:
 
-```
+```python
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 mask_generator = SamAutomaticMaskGenerator(sam)
@@ -61,7 +61,7 @@ masks = mask_generator.generate(<your_image>)
 
 Additionally, masks can be generated for images from the command line:
 
-```
+```shell
 python scripts/amg.py --checkpoint <path/to/checkpoint> --model-type <model_type> --input <image_or_folder> --output <path/to/output>
 ```
 
@@ -76,7 +76,7 @@ See the examples notebooks on [using SAM with prompts](/notebooks/predictor_exam
 
 SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with
 
-```
+```shell
 python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --model-type <model_type> --output <path/to/output>
 ```
 
@@ -90,7 +90,7 @@ The `demo/` folder has a simple one page React app which shows how to run mask p
 
 Three model versions of the model are available with different backbone sizes. These models can be instantiated by running
 
-```
+```python
 from segment_anything import sam_model_registry
 sam = sam_model_registry["<model_type>"](checkpoint="<path/to/checkpoint>")
 ```
@@ -136,7 +136,7 @@ Image ids can be found in sa_images_ids.txt which can be downloaded using the ab
 
 To decode a mask in COCO RLE format into binary:
 
-```
+```python
 from pycocotools import mask as mask_utils
 mask = mask_utils.decode(annotation["segmentation"])
 ```
