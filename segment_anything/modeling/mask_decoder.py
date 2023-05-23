@@ -118,14 +118,18 @@ class MaskDecoder(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
         # Concatenate output tokens
+        img_B = image_embeddings.shape[0]
+        point_B = sparse_prompt_embeddings.shape[0]
         output_tokens = torch.cat([self.iou_token.weight, self.mask_tokens.weight], dim=0)
         output_tokens = output_tokens.unsqueeze(0).expand(sparse_prompt_embeddings.size(0), -1, -1)
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
+        tokens = torch.repeat_interleave(tokens, img_B, dim=0)
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+        src = torch.repeat_interleave(image_embeddings, point_B, dim=0)
+        dense_prompt_embeddings = torch.repeat_interleave(dense_prompt_embeddings, img_B, dim=0)
         src = src + dense_prompt_embeddings
-        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
+        pos_src = torch.repeat_interleave(image_pe, img_B * point_B, dim=0)
         b, c, h, w = src.shape
 
         # Run the transformer
