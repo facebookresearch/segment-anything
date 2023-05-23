@@ -224,6 +224,8 @@ class SamPredictor:
             boxes=boxes,
             masks=mask_input,
         )
+        # dense_embeddings: batch of points, 256, 64, 64
+        # sparse_embedddings: batch of points, 2, 256
 
         # Predict masks
         low_res_masks, iou_predictions = self.model.mask_decoder(
