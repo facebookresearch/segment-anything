@@ -1,4 +1,5 @@
 .nfs*
+.venv/
 
 # compilation and distribution
 __pycache__
