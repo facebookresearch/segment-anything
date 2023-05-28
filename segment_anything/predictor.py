@@ -76,11 +76,9 @@ class SamPredictor:
           original_image_size (tuple(int, int)): The size of the image
             before transformation, in (H, W) format.
         """
-        assert (
-                len(transformed_image.shape) == 4
-                and transformed_image.shape[1] == 3
-                and max(*transformed_image.shape[2:]) == self.model.image_encoder.img_size
-        ), f"set_torch_image input must be BCHW with long side {self.model.image_encoder.img_size}."
+        assert (len(transformed_image.shape) == 4 and transformed_image.shape[1] == 3
+                and max(*transformed_image.shape[2:]) == self.model.image_encoder.img_size), \
+            f"set_torch_image input must be BCHW with long side {self.model.image_encoder.img_size}."
         self.reset_image()
 
         self.original_size = original_image_size
@@ -102,7 +100,7 @@ class SamPredictor:
         self.input_size = tuple(torch_shape)
         self.is_image_set = True
 
-    def get_feature_as_np(self, image_shape):
+    def get_feature_as_np(self):
         np_feature = self.features.cpu().numpy()
         return np_feature
 
@@ -153,9 +151,7 @@ class SamPredictor:
         # Transform input prompts
         coords_torch, labels_torch, box_torch, mask_input_torch = None, None, None, None
         if point_coords is not None:
-            assert (
-                    point_labels is not None
-            ), "point_labels must be supplied if point_coords is supplied."
+            assert (point_labels is not None), "point_labels must be supplied if point_coords is supplied."
             point_coords = self.transform.apply_coords(point_coords, self.original_size)
             coords_torch = torch.as_tensor(point_coords, dtype=torch.float, device=self.device)
             labels_torch = torch.as_tensor(point_labels, dtype=torch.int, device=self.device)
