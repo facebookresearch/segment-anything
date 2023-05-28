@@ -88,7 +88,13 @@ class SamPredictor:
         self.is_image_set = True
 
     def set_image_embedding(self, numpy_feature, image_shape):
+        """
+        Set the image embedding using a NumPy feature array and image shape.
 
+        Args:
+            numpy_feature (numpy.ndarray): NumPy array representing the image features.
+            image_shape (tuple): Tuple representing the image shape in (height, width) format.
+        """
         self.features = torch.from_numpy(numpy_feature).to(self.device)
 
         # Transform the image to the form expected by the model
@@ -101,6 +107,12 @@ class SamPredictor:
         self.is_image_set = True
 
     def get_feature_as_np(self):
+        """
+        Retrieve the image feature as a NumPy array.
+
+        Returns:
+            numpy.ndarray: NumPy array representing the image features.
+        """
         np_feature = self.features.cpu().numpy()
         return np_feature
 
