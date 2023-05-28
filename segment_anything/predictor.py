@@ -106,16 +106,6 @@ class SamPredictor:
         self.input_size = tuple(torch_shape)
         self.is_image_set = True
 
-    def get_feature_as_np(self):
-        """
-        Retrieve the image feature as a NumPy array.
-
-        Returns:
-            numpy.ndarray: NumPy array representing the image features.
-        """
-        np_feature = self.features.cpu().numpy()
-        return np_feature
-
     def predict(
             self,
             point_coords: Optional[np.ndarray] = None,
@@ -267,17 +257,27 @@ class SamPredictor:
 
         return masks, iou_predictions, low_res_masks
 
-    def get_image_embedding(self) -> torch.Tensor:
+    def get_image_embedding(self, return_np: bool = False) -> Optional[torch.Tensor, np.ndarray]:
         """
         Returns the image embeddings for the currently set image, with
         shape 1xCxHxW, where C is the embedding dimension and (H,W) are
         the embedding spatial dimension of SAM (typically C=256, H=W=64).
+
+        Parameters:
+            return_np (bool): If True, returns the image embeddings as a NumPy array.
+
+        Returns:
+            Optional[torch.Tensor, np.ndarray]: Image embeddings as a Torch tensor or NumPy array.
         """
         if not self.is_image_set:
             raise RuntimeError(
                 "An image must be set with .set_image(...) to generate an embedding."
             )
         assert self.features is not None, "Features must exist if an image has been set."
+        if return_np:
+            np_feature = self.features.cpu().numpy()
+            return np_feature
+
         return self.features
 
     @property
