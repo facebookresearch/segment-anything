@@ -89,7 +89,9 @@ class SamPredictor:
         self.features = self.model.image_encoder(input_image)
         self.is_image_set = True
 
-    def set_image_embedding(self, image_shape):
+    def set_image_embedding(self, numpy_feature, image_shape):
+
+        self.features = torch.from_numpy(numpy_feature).to(self.device)
 
         # Transform the image to the form expected by the model
         target_size = ResizeLongestSide.get_preprocess_shape(image_shape[0], image_shape[1],
@@ -99,6 +101,10 @@ class SamPredictor:
         torch_shape = torch.Size(new_image_shape)
         self.input_size = tuple(torch_shape)
         self.is_image_set = True
+
+    def get_feature_as_np(self):
+        np_feature = self.features.cpu().numpy()
+        return np_feature
 
     def predict(
             self,
