@@ -9,7 +9,7 @@ import torch
 
 from segment_anything.modeling import Sam
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from .utils.transforms import ResizeLongestSide
 
@@ -257,7 +257,7 @@ class SamPredictor:
 
         return masks, iou_predictions, low_res_masks
 
-    def get_image_embedding(self, return_np: bool = False) -> Optional[torch.Tensor, np.ndarray]:
+    def get_image_embedding(self, return_np: bool = False) -> Union[torch.Tensor, np.ndarray]:
         """
         Returns the image embeddings for the currently set image, with
         shape 1xCxHxW, where C is the embedding dimension and (H,W) are
@@ -267,7 +267,7 @@ class SamPredictor:
             return_np (bool): If True, returns the image embeddings as a NumPy array.
 
         Returns:
-            Optional[torch.Tensor, np.ndarray]: Image embeddings as a Torch tensor or NumPy array.
+            Union[torch.Tensor, np.ndarray]: Image embeddings as a Torch tensor or NumPy array.
         """
         if not self.is_image_set:
             raise RuntimeError(
