@@ -102,7 +102,7 @@ class SamPredictor:
         self.input_size = tuple(torch_shape)
         self.is_image_set = True
 
-    def get_feature_as_np(self, image_shape):
+    def get_feature_as_np(self):
         np_feature = self.features.cpu().numpy()
         return np_feature
 
