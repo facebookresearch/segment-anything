@@ -6,7 +6,7 @@
 
 import cv2  # type: ignore
 
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, SamPredictor
 
 import argparse
 import json
@@ -247,7 +247,20 @@ def main(args: argparse.Namespace) -> None:
                 json.dump(masks, f)
     print("Done!")
 
+def get_image_npy():
+    checkpoint = "/Users/zaihui-101/dev/model/sam_vit_h_4b8939.pth"
+    model_type = "vit_h"
+    sam = sam_model_registry[model_type](checkpoint=checkpoint)
+    sam.to(device='cpu')
+    predictor = SamPredictor(sam)
+
+    image = cv2.imread('/Users/zaihui-101/dev/github/segment-anything/demo/src/assets/data/dogs.jpg')
+    predictor.set_image(image)
+    image_embedding = predictor.get_image_embedding().cpu().numpy()
+    np.save("/Users/zaihui-101/dev/github/segment-anything/demo/src/assets/data/dogs_embedding.npy", image_embedding)
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    main(args)
+    # args = parser.parse_args()
+    # main(args)
+    get_image_npy()
+
