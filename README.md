@@ -33,6 +33,11 @@ cd segment-anything; pip install -e .
 ```
 
 The following optional dependencies are necessary for mask post-processing, saving masks in COCO format, the example notebooks, and exporting the model in ONNX format. `jupyter` is also required to run the example notebooks.
+- PyTorch: An open-source machine learning library based on the Torch library.
+- Torchvision: A package that provides access to popular datasets, model architectures, and image transformations for computer vision.
+- CUDA: Compute Unified Device Architecture, a parallel computing platform and API model created by NVIDIA, which allows using GPU for general purpose processing.
+- COCO: Common Objects in Context, a large-scale object detection, segmentation, and captioning dataset.
+- ONNX: Open Neural Network Exchange, an open format to represent deep learning models.
 
 ```
 pip install opencv-python pycocotools matplotlib onnxruntime onnx
@@ -134,7 +139,7 @@ annotation {
 
 Image ids can be found in sa_images_ids.txt which can be downloaded using the above [link](https://ai.facebook.com/datasets/segment-anything-downloads/) as well.
 
-To decode a mask in COCO RLE format into binary:
+To decode a mask in [COCO RLE](#coco-common-objects-in-context) format into binary:
 
 ```
 from pycocotools import mask as mask_utils
