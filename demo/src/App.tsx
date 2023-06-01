@@ -18,9 +18,9 @@ const ort = require("onnxruntime-web");
 import npyjs from "npyjs";
 
 // Define image, embedding and model paths
-const IMAGE_PATH = "/assets/data/dogs.jpg";
-const IMAGE_EMBEDDING = "/assets/data/dogs_embedding.npy";
-const MODEL_DIR = "/model/sam_onnx_quantized_example.onnx";
+const IMAGE_PATH = "/assets/data/dish.jpeg";
+const IMAGE_EMBEDDING = "/assets/data/dish_embedding.npy";
+const MODEL_DIR = "/assets/model/sam_vit_h_4b89392.onnx";
 
 const App = () => {
   const {
