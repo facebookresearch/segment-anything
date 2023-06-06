@@ -5,48 +5,51 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-
+import torch.nn.functional as F
 from functools import partial
 
 from .modeling import ImageEncoderViT, MaskDecoder, PromptEncoder, Sam, TwoWayTransformer
 
 
-def build_sam_vit_h(checkpoint=None):
+def build_sam_vit_h(checkpoint=None, image_size=1024):
     return _build_sam(
         encoder_embed_dim=1280,
         encoder_depth=32,
         encoder_num_heads=16,
         encoder_global_attn_indexes=[7, 15, 23, 31],
         checkpoint=checkpoint,
+        image_size=image_size
     )
 
 
 build_sam = build_sam_vit_h
 
 
-def build_sam_vit_l(checkpoint=None):
+def build_sam_vit_l(checkpoint=None, image_size=1024):
     return _build_sam(
         encoder_embed_dim=1024,
         encoder_depth=24,
         encoder_num_heads=16,
         encoder_global_attn_indexes=[5, 11, 17, 23],
         checkpoint=checkpoint,
+        image_size=image_size
     )
 
 
-def build_sam_vit_b(checkpoint=None):
+def build_sam_vit_b(checkpoint=None, image_size=1024):
     return _build_sam(
         encoder_embed_dim=768,
         encoder_depth=12,
         encoder_num_heads=12,
         encoder_global_attn_indexes=[2, 5, 8, 11],
         checkpoint=checkpoint,
+        image_size=image_size
     )
 
 
 sam_model_registry = {
-    "default": build_sam_vit_h,
-    "vit_h": build_sam_vit_h,
+    "default": build_sam,
+    "vit_h": build_sam,
     "vit_l": build_sam_vit_l,
     "vit_b": build_sam_vit_b,
 }
@@ -58,9 +61,9 @@ def _build_sam(
     encoder_num_heads,
     encoder_global_attn_indexes,
     checkpoint=None,
+    image_size=1024,
 ):
     prompt_embed_dim = 256
-    image_size = 1024
     vit_patch_size = 16
     image_embedding_size = image_size // vit_patch_size
     sam = Sam(
@@ -103,5 +106,13 @@ def _build_sam(
     if checkpoint is not None:
         with open(checkpoint, "rb") as f:
             state_dict = torch.load(f)
+        if image_size == 256:
+            # Simple downsampling
+            print('Downsizing SAM positional embeddings via simple downsampling')
+            s = 4
+            state_dict['image_encoder.pos_embed'] = state_dict['image_encoder.pos_embed'][:, ::s, ::s]
+            for block_num in encoder_global_attn_indexes:
+                state_dict[f'image_encoder.blocks.{block_num}.attn.rel_pos_h'] = state_dict[f'image_encoder.blocks.{block_num}.attn.rel_pos_h'][:-s:s]
+                state_dict[f'image_encoder.blocks.{block_num}.attn.rel_pos_w'] = state_dict[f'image_encoder.blocks.{block_num}.attn.rel_pos_w'][:-s:s]
         sam.load_state_dict(state_dict)
     return sam
