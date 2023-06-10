@@ -16,6 +16,14 @@ from .prompt_encoder import PromptEncoder
 
 
 class Sam(nn.Module):
+    """
+    SAM (Segmentation and Masking) is a class used for object masking in images. 
+    It leverages the power of the Vision Transformer (ViT) as an image encoder, 
+    a prompt encoder for various types of input prompts, and a mask decoder 
+    for predicting object masks. It fits into the larger system as a module responsible 
+    for understanding the spatial layout of objects in an image, based on prompts given 
+    as inputs, and generating corresponding object masks.
+    """
     mask_threshold: float = 0.0
     image_format: str = "RGB"
 
