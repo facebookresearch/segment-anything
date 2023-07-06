@@ -103,7 +103,7 @@ Click the links below to download the checkpoint for the corresponding model typ
 
 ## Dataset
 
-See [here](https://ai.facebook.com/datasets/segment-anything/) for an overview of the datastet. The dataset can be downloaded [here](https://ai.facebook.com/datasets/segment-anything-downloads/). By downloading the datasets you agree that you have read and accepted the terms of the SA-1B Dataset Research License.
+See [here](https://ai.facebook.com/datasets/segment-anything/) for an overview of the dataset. The dataset can be downloaded [here](https://ai.facebook.com/datasets/segment-anything-downloads/). By downloading the datasets you agree that you have read and accepted the terms of the SA-1B Dataset Research License.
 
 We save masks per image as a json file. It can be loaded as a dictionary in python in the below format.
 
