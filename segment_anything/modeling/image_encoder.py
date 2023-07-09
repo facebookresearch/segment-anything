@@ -111,9 +111,10 @@ class ImageEncoderViT(nn.Module):
         for blk in self.blocks:
             x = blk(x)
 
+        x_preconv = x.permute(0, 3, 1, 2)
         x = self.neck(x.permute(0, 3, 1, 2))
 
-        return x
+        return x, x_preconv
 
 
 class Block(nn.Module):
