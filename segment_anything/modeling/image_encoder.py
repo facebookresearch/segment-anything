@@ -16,23 +16,23 @@ from .common import LayerNorm2d, MLPBlock
 # This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 class ImageEncoderViT(nn.Module):
     def __init__(
-        self,
-        img_size: int = 1024,
-        patch_size: int = 16,
-        in_chans: int = 3,
-        embed_dim: int = 768,
-        depth: int = 12,
-        num_heads: int = 12,
-        mlp_ratio: float = 4.0,
-        out_chans: int = 256,
-        qkv_bias: bool = True,
-        norm_layer: Type[nn.Module] = nn.LayerNorm,
-        act_layer: Type[nn.Module] = nn.GELU,
-        use_abs_pos: bool = True,
-        use_rel_pos: bool = False,
-        rel_pos_zero_init: bool = True,
-        window_size: int = 0,
-        global_attn_indexes: Tuple[int, ...] = (),
+            self,
+            img_size: int = 1024,
+            patch_size: int = 16,
+            in_chans: int = 3,
+            embed_dim: int = 768,
+            depth: int = 12,
+            num_heads: int = 12,
+            mlp_ratio: float = 4.0,
+            out_chans: int = 256,
+            qkv_bias: bool = True,
+            norm_layer: Type[nn.Module] = nn.LayerNorm,
+            act_layer: Type[nn.Module] = nn.GELU,
+            use_abs_pos: bool = True,
+            use_rel_pos: bool = False,
+            rel_pos_zero_init: bool = True,
+            window_size: int = 0,
+            global_attn_indexes: Tuple[int, ...] = (),
     ) -> None:
         """
         Args:
@@ -106,7 +106,15 @@ class ImageEncoderViT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.patch_embed(x)
         if self.pos_embed is not None:
-            x = x + self.pos_embed
+            _, h1, w1, _ = self.pos_embed.shape
+            _, h2, w2, _ = x.shape
+
+            if not (h1 == h2 and w1 == w2):
+                pos_embed = F.interpolate(self.pos_embed.permute(0, 3, 1, 2), (h2, w2)).permute(0, 2, 3, 1)
+            else:
+                pos_embed = self.pos_embed
+
+            x = x + pos_embed
 
         for blk in self.blocks:
             x = blk(x)
@@ -120,17 +128,17 @@ class Block(nn.Module):
     """Transformer blocks with support of window attention and residual propagation blocks"""
 
     def __init__(
-        self,
-        dim: int,
-        num_heads: int,
-        mlp_ratio: float = 4.0,
-        qkv_bias: bool = True,
-        norm_layer: Type[nn.Module] = nn.LayerNorm,
-        act_layer: Type[nn.Module] = nn.GELU,
-        use_rel_pos: bool = False,
-        rel_pos_zero_init: bool = True,
-        window_size: int = 0,
-        input_size: Optional[Tuple[int, int]] = None,
+            self,
+            dim: int,
+            num_heads: int,
+            mlp_ratio: float = 4.0,
+            qkv_bias: bool = True,
+            norm_layer: Type[nn.Module] = nn.LayerNorm,
+            act_layer: Type[nn.Module] = nn.GELU,
+            use_rel_pos: bool = False,
+            rel_pos_zero_init: bool = True,
+            window_size: int = 0,
+            input_size: Optional[Tuple[int, int]] = None,
     ) -> None:
         """
         Args:
@@ -186,13 +194,13 @@ class Attention(nn.Module):
     """Multi-head Attention block with relative position embeddings."""
 
     def __init__(
-        self,
-        dim: int,
-        num_heads: int = 8,
-        qkv_bias: bool = True,
-        use_rel_pos: bool = False,
-        rel_pos_zero_init: bool = True,
-        input_size: Optional[Tuple[int, int]] = None,
+            self,
+            dim: int,
+            num_heads: int = 8,
+            qkv_bias: bool = True,
+            use_rel_pos: bool = False,
+            rel_pos_zero_init: bool = True,
+            input_size: Optional[Tuple[int, int]] = None,
     ) -> None:
         """
         Args:
@@ -207,7 +215,7 @@ class Attention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
-        self.scale = head_dim**-0.5
+        self.scale = head_dim ** -0.5
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.proj = nn.Linear(dim, dim)
@@ -215,7 +223,7 @@ class Attention(nn.Module):
         self.use_rel_pos = use_rel_pos
         if self.use_rel_pos:
             assert (
-                input_size is not None
+                    input_size is not None
             ), "Input size must be provided if using relative positional encoding."
             # initialize relative positional embeddings
             self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
@@ -265,7 +273,7 @@ def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, T
 
 
 def window_unpartition(
-    windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int], hw: Tuple[int, int]
+        windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int], hw: Tuple[int, int]
 ) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
@@ -323,12 +331,12 @@ def get_rel_pos(q_size: int, k_size: int, rel_pos: torch.Tensor) -> torch.Tensor
 
 
 def add_decomposed_rel_pos(
-    attn: torch.Tensor,
-    q: torch.Tensor,
-    rel_pos_h: torch.Tensor,
-    rel_pos_w: torch.Tensor,
-    q_size: Tuple[int, int],
-    k_size: Tuple[int, int],
+        attn: torch.Tensor,
+        q: torch.Tensor,
+        rel_pos_h: torch.Tensor,
+        rel_pos_w: torch.Tensor,
+        q_size: Tuple[int, int],
+        k_size: Tuple[int, int],
 ) -> torch.Tensor:
     """
     Calculate decomposed Relative Positional Embeddings from :paper:`mvitv2`.
@@ -355,7 +363,7 @@ def add_decomposed_rel_pos(
     rel_w = torch.einsum("bhwc,wkc->bhwk", r_q, Rw)
 
     attn = (
-        attn.view(B, q_h, q_w, k_h, k_w) + rel_h[:, :, :, :, None] + rel_w[:, :, :, None, :]
+            attn.view(B, q_h, q_w, k_h, k_w) + rel_h[:, :, :, :, None] + rel_w[:, :, :, None, :]
     ).view(B, q_h * q_w, k_h * k_w)
 
     return attn
@@ -367,12 +375,12 @@ class PatchEmbed(nn.Module):
     """
 
     def __init__(
-        self,
-        kernel_size: Tuple[int, int] = (16, 16),
-        stride: Tuple[int, int] = (16, 16),
-        padding: Tuple[int, int] = (0, 0),
-        in_chans: int = 3,
-        embed_dim: int = 768,
+            self,
+            kernel_size: Tuple[int, int] = (16, 16),
+            stride: Tuple[int, int] = (16, 16),
+            padding: Tuple[int, int] = (0, 0),
+            in_chans: int = 3,
+            embed_dim: int = 768,
     ) -> None:
         """
         Args:
