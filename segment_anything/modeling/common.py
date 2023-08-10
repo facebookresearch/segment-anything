@@ -36,8 +36,10 @@ class LayerNorm2d(nn.Module):
         self.eps = eps
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.reshape(256, 4096).permute(1, 0)
         u = x.mean(1, keepdim=True)
         s = (x - u).pow(2).mean(1, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.eps)
-        x = self.weight[:, None, None] * x + self.bias[:, None, None]
+        x = self.weight * x + self.bias
+        x = x.reshape(1, 64, 64, 256).permute(0, 3, 1, 2)
         return x
