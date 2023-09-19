@@ -1,0 +1,93 @@
+train:
+  experiment_name: 'semantic_sam'
+  # Model
+  model:
+    sam_name: 'sem_sam'
+    params:
+      # Fix the a part of parameters in SAM
+      fix_img_en: True
+      fix_prompt_en: True
+      fix_mask_de: False
+      ckpt_path: 'sam_ckpt/sam_vit_b_01ec64.pth'
+      class_num: 21 # 20 + 1
+      model_type: 'vit_b'    # type should be in [vit_h, vit_b, vit_l, default]
+
+  # Dataset
+  dataset:
+    name: 'torch_voc_sem'
+    params:
+      root: '/data/jinziqi/DATASETS/'
+      year: '2012'
+      image_set: 'train'
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  # Losses
+  losses:
+    ce:
+      weight: 0.5
+      params:  # ~ means None type, the initial params of loss could be identified here
+        ignore_index: 255
+      label_one_hot: False
+
+  # Optimizer
+  opt_params:
+    lr_default:  1e-3
+    wd_default: 1e-4
+    momentum: 0.9
+    lr_list:  [ 1e-2, ]
+    group_keys: [ [ 'mask_adapter.decoder_head.output_hypernetworks_mlps', ], ]
+    wd_list:  [ 0.0, ]
+  opt_name: 'sgd' # 'sgd'
+  scheduler_name: 'cosine'
+
+  # Runner
+  max_iter: 100000
+  log_iter: 20
+  eval_iter: 200
+  runner_name: 'sem_runner'
+  # Dataloader
+  bs: 8 # 8
+  num_workers: 2
+  drop_last: True
+  # Logger
+  use_tensorboard: True
+  tensorboard_folder: './experiment/tensorboard'
+  log_folder: './experiment/log'
+  model_folder: './experiment/model'
+
+val:
+  # Dataset
+  dataset:
+    name: 'torch_voc_sem'
+    params:
+      root: '/data/jinziqi/DATASETS/'
+      year: '2012'
+      image_set: 'train'
+    transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+      to_tensor:
+        params: ~
+    target_transforms:
+      resize:
+        params:
+          size: [1024, 1024]
+
+  bs: 8
+  num_workers: 2
+  drop_last: True
+
+
+test:
+  need_test: False
+

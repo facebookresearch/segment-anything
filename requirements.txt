@@ -1,0 +1,7 @@
+numpy==1.24.2
+omegaconf==2.3.0
+opencv_python==4.7.0.72
+pandas==2.0.1
+Pillow==9.5.0
+torch==1.7.1
+torchvision==0.8.2
