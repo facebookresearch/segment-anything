@@ -7,7 +7,7 @@
 import numpy as np
 import torch
 
-import math, sys
+import math
 from copy import deepcopy
 from itertools import product
 from typing import Any, Dict, Generator, ItemsView, List, Tuple
@@ -116,16 +116,19 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
     # Compute change indices
     diff = tensor[:, 1:] ^ tensor[:, :-1]
 
-    # the torch function nonzero() only works up to INT_MAX tensor elements, so we first test if we have more than that.
+    # the torch function nonzero() only works up to INT_MAX tensor elements
+    # We first test if we have more than that:
     # Total elements in the tensor
     b, w_h = diff.shape
     total_elements = b * w_h
-    
+
     # Maximum allowable elements in one chunk - as torch is using 32 bit integers for this function
-    max_elements_per_chunk = 2**31 - 1 
+    max_elements_per_chunk = 2**31 - 1
 
     if total_elements < max_elements_per_chunk:
-        change_indices = diff.nonzero() # the tensor is < 32 bit so we find the change indices in a single torch call.
+        change_indices = (
+            diff.nonzero()
+        )  # the tensor is < 32 bit so we find the change indices in a single torch call.
     else:
         # Calculate the number of chunks needed
         num_chunks = total_elements // max_elements_per_chunk
@@ -136,27 +139,27 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
         chunk_size = b // num_chunks
         if b % num_chunks != 0:
             chunk_size += 1
-        
+
         # List to store the results from each chunk
         all_indices = []
 
         # Loop through the diff tensor in chunks
         for i in range(num_chunks):
             start = i * chunk_size
-            end = min((i+1) * chunk_size, b)
+            end = min((i + 1) * chunk_size, b)
             chunk = diff[start:end, :]
-            
+
             # Get non-zero indices for the current chunk
             indices = chunk.nonzero()
-            
+
             # Adjust the row indices to the original tensor
             indices[:, 0] += start
-            
+
             all_indices.append(indices)
 
         # Concatenate all the results
         change_indices = torch.cat(all_indices, dim=0)
-    
+
     # Encode run length
     out = []
     for i in range(b):
