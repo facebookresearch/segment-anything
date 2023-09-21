@@ -120,10 +120,9 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
     # Total elements in the tensor
     b, w_h = diff.shape
     total_elements = b * w_h
-    print(f"Total number of elements appears to be: {total_elements}")
-    # Maximum allowable elements in one chunk
-    max_elements_per_chunk = 2**31 - 1
-    print(f"We're guessing that INT_MAX is: {max_elements_per_chunk}")
+    
+    # Maximum allowable elements in one chunk - as torch is using 32 bit integers for this function
+    max_elements_per_chunk = 2**31 - 1 
 
     if total_elements < max_elements_per_chunk:
         change_indices = diff.nonzero() # the tensor is < 32 bit so we find the change indices in a single torch call.
