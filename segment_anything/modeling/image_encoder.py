@@ -239,6 +239,21 @@ class Attention(nn.Module):
 
         return x
 
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        rest = dict()
+        for k, v in state_dict.items():
+            if 'rel_pos' in k:
+                my_rel_pos = getattr(self, k[len(prefix):])
+                if my_rel_pos.shape[0] != v.shape[0]:
+                    v = v.unsqueeze(0).permute(0, 2, 1)
+                    v = F.interpolate(v, size=my_rel_pos.shape[0], mode='linear', align_corners=True)
+                    v = v.squeeze(0).T
+                my_rel_pos.data.copy_(v)
+            else:
+                rest[k] = v
+
+        return super()._load_from_state_dict(rest, prefix, local_metadata, False, missing_keys, unexpected_keys, error_msgs)
+
 
 def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
     """
