@@ -1,18 +1,31 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
+from setuptools import setup, find_packages
 
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
-from setuptools import find_packages, setup
-
+packages = find_packages()
+print("packages: ", packages)
 setup(
-    name="segment_anything",
-    version="1.0",
-    install_requires=[],
-    packages=find_packages(exclude="notebooks"),
-    extras_require={
-        "all": ["matplotlib", "pycocotools", "opencv-python", "onnx", "onnxruntime"],
-        "dev": ["flake8", "isort", "black", "mypy"],
+    name='pytorch-labs-segment-anything-fast',
+    version='0.2',
+    packages=packages,
+    install_requires=[
+        'torch>=2.2.0.dev20231026',
+        'torchvision>=0.17.0.dev20231026',
+        'diskcache',
+        'pycocotools',
+        'scipy',
+        'scikit-image',
+        'torchao',
+    ],
+    include_package_data=True,
+    package_data={
+        'segment_anything_fast.configs': ["*.p"],
     },
+    description='A pruned, quantized, compiled, nested and batched implementation of segment-anything',
+    long_description_content_type='text/markdown',
+    url='https://github.com/pytorch-labs/segment-anything-fast',
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+    ],
+    python_requires='>=3.8',
 )

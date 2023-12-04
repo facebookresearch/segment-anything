@@ -23,13 +23,13 @@ include:
 Examples of unacceptable behavior by participants include:
 
 * The use of sexualized language or imagery and unwelcome sexual attention or
-  advances
+advances
 * Trolling, insulting/derogatory comments, and personal or political attacks
 * Public or private harassment
 * Publishing others' private information, such as a physical or electronic
-  address, without explicit permission
+address, without explicit permission
 * Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+professional setting
 
 ## Our Responsibilities
 
@@ -52,14 +52,10 @@ project e-mail address, posting via an official social media account, or acting
 as an appointed representative at an online or offline event. Representation of
 a project may be further defined and clarified by project maintainers.
 
-This Code of Conduct also applies outside the project spaces when there is a
-reasonable belief that an individual's behavior may have a negative impact on
-the project or its community.
-
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team at <opensource-conduct@fb.com>. All
+reported by contacting the project team at <conduct@pytorch.org>. All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.
