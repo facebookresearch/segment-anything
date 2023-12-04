@@ -1,0 +1,9 @@
+technique,time,sam_commit_name,pytorch_version,sam_model_type,batch_size,memory(MiB),memory(%),img_s(avg),batch_ms(avg)/batch_size,mIoU,use_compile,use_half,compress,epilogue_fusion_first,use_compile_decoder,use_nested_tensor,use_rel_pos,pad_input_image_batch,num_workers,num_batches,num_images,profile_path,memory_path
+fp32,0.3408697446187337,default,2.2.0.dev20231024+cu121,ERROR
+bf16,0.3232296347618103,codesign,2.2.0.dev20231024+cu121,ERROR
+compile,1.4304784536361694,codesign,2.2.0.dev20231024+cu121,ERROR
+SDPA,5.974866807460785,sdpa-decoder,2.2.0.dev20231024+cu121,vit_h,32,27276,67,21.754509457085913,45.96748099389014,0.581191777206921,max-autotune,torch.bfloat16,None,False,False,False,True,True,32,154,4928,None,None
+Triton,5.73175394932429,local-fork,2.2.0.dev20231024+cu121,vit_h,32,14424,35,22.71537227352625,44.02305134859952,0.5820036887609843,max-autotune,torch.bfloat16,None,False,False,False,True,True,32,154,4928,None,None
+NT,5.5431528210639955,local-fork,2.2.0.dev20231024+cu121,vit_h,32,14424,35,23.333015236230114,42.85772712509353,0.5807765231991617,max-autotune,torch.bfloat16,None,False,False,True,True,True,32,154,4928,None,None
+int8,6.999959905942281,local-fork,2.2.0.dev20231026+cu121,vit_h,32,14783,36,25.167496549454327,39.73378909717906,0.581791527840287,max-autotune,torch.bfloat16,dynamic_quant,False,False,True,True,True,32,154,4928,None,None
+sparse,5.685418633619944,local-fork,2.2.0.dev20231024+cu121,vit_h,32,15108,37,24.31964924223424,41.11901409595043,0.5286787009095467,max-autotune,torch.bfloat16,sparse,False,False,True,True,True,32,154,4928,None,None
