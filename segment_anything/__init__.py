@@ -12,4 +12,5 @@ from .build_sam import (
     sam_model_registry,
 )
 from .predictor import SamPredictor
+from .triton_predictor import TritonSamPredictor
 from .automatic_mask_generator import SamAutomaticMaskGenerator

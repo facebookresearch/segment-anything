@@ -6,7 +6,7 @@
 
 import cv2  # type: ignore
 
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, SamPredictor
 
 import argparse
 import json
@@ -198,7 +198,7 @@ def main(args: argparse.Namespace) -> None:
     _ = sam.to(device=args.device)
     output_mode = "coco_rle" if args.convert_to_rle else "binary_mask"
     amg_kwargs = get_amg_kwargs(args)
-    generator = SamAutomaticMaskGenerator(sam, output_mode=output_mode, **amg_kwargs)
+    generator = SamAutomaticMaskGenerator(SamPredictor(sam), output_mode=output_mode, **amg_kwargs)
 
     if not os.path.isdir(args.input):
         targets = [args.input]

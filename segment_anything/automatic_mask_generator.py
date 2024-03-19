@@ -35,7 +35,7 @@ from .utils.amg import (
 class SamAutomaticMaskGenerator:
     def __init__(
         self,
-        model: Sam,
+        predictor: SamPredictor,
         points_per_side: Optional[int] = 32,
         points_per_batch: int = 64,
         pred_iou_thresh: float = 0.88,
@@ -57,7 +57,7 @@ class SamAutomaticMaskGenerator:
         for SAM with a ViT-H backbone.
 
         Arguments:
-          model (Sam): The SAM model to use for mask prediction.
+          predictor (SamPredictor): The SAM predictor to use for mask prediction.
           points_per_side (int or None): The number of points to be sampled
             along one side of the image. The total number of points is
             points_per_side**2. If None, 'point_grids' must provide explicit
@@ -120,7 +120,7 @@ class SamAutomaticMaskGenerator:
         if min_mask_region_area > 0:
             import cv2  # type: ignore # noqa: F401
 
-        self.predictor = SamPredictor(model)
+        self.predictor = predictor
         self.points_per_batch = points_per_batch
         self.pred_iou_thresh = pred_iou_thresh
         self.stability_score_thresh = stability_score_thresh
