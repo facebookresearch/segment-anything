@@ -17,15 +17,18 @@ class TritonSamPredictor(SamPredictor):
 
     def __init__(
         self,
-        host='gpu-006:50000',
+        sam=None,
+        host='localhost',
         encoder_model_name='sam_encoder',
         decoder_model_name='sam_decoder',
+        proxy_host=None,
+        proxy_port=None,
         img_size=1024
     ):
         self._host = host
         self._encoder_model_name = encoder_model_name
         self._decoder_model_name = decoder_model_name
-        self._client = httpclient.InferenceServerClient(url=host)
+        self._client = httpclient.InferenceServerClient(url=host, proxy_host=proxy_host, proxy_port=proxy_port)
         self.is_image_set = False
         self.img_size = img_size
         self.transform = ResizeLongestSide(img_size)
@@ -124,12 +127,11 @@ class TritonSamPredictor(SamPredictor):
             raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
         embeddings = self._run_encoder()
-        print('embeddings', embeddings.shape)
 
         # onnx_coord = np.concatenate([point_coords, np.array([[0.0, 0.0]])], axis=0)[None, :, :]
         # onnx_label = np.concatenate([point_labels, np.array([-1])])[None, :].astype(np.float32)
 
-        batch_size = len(point_coords)
+        batch_size = 1  # len(point_coords)
 
         onnx_coord = point_coords
         onnx_label = point_labels.astype(np.float32)
@@ -139,7 +141,6 @@ class TritonSamPredictor(SamPredictor):
         coords[..., 1] = coords[..., 1] * (self.input_h / self.orig_h)
 
         onnx_coord = coords.astype("float32")
-        print(onnx_coord.shape)
 
         # RUN DECODER TO GET MASK
         onnx_mask_input = np.zeros((batch_size, 1, 256, 256), dtype=np.float32)

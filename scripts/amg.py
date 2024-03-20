@@ -6,7 +6,7 @@
 
 import cv2  # type: ignore
 
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, SamPredictor
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, TritonSamPredictor
 
 import argparse
 import json
@@ -43,6 +43,24 @@ parser.add_argument(
     type=str,
     required=True,
     help="The type of model to load, in ['default', 'vit_h', 'vit_l', 'vit_b']",
+)
+
+parser.add_argument(
+    "--host",
+    type=str,
+    help="Host of the Triton server",
+)
+
+parser.add_argument(
+    "--proxy-host",
+    type=str,
+    help="Host of the proxy for the Triton Server",
+)
+
+parser.add_argument(
+    "--proxy-port",
+    type=int,
+    help="Port of the proxy for the Triton Server",
 )
 
 parser.add_argument(
@@ -194,11 +212,15 @@ def get_amg_kwargs(args):
 
 def main(args: argparse.Namespace) -> None:
     print("Loading model...")
-    sam = sam_model_registry[args.model_type](checkpoint=args.checkpoint)
-    _ = sam.to(device=args.device)
+    # TODO: possibly load also standard local model
+    # sam = sam_model_registry[args.model_type](checkpoint=args.checkpoint)
+    # _ = sam.to(device=args.device)
     output_mode = "coco_rle" if args.convert_to_rle else "binary_mask"
     amg_kwargs = get_amg_kwargs(args)
-    generator = SamAutomaticMaskGenerator(SamPredictor(sam), output_mode=output_mode, **amg_kwargs)
+    generator = SamAutomaticMaskGenerator(
+        TritonSamPredictor(host=args.host, proxy_host=args.proxy_host, proxy_port=args.proxy_port),
+        output_mode=output_mode, **amg_kwargs
+    )
 
     if not os.path.isdir(args.input):
         targets = [args.input]
