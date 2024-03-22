@@ -46,9 +46,8 @@ class MaskData:
             if v is None:
                 self._stats[k] = None
             elif isinstance(v, np.ndarray):
-                print('shapes', k, v.shape, keep.shape)
                 self._stats[k] = v[keep]
-            elif isinstance(v, list) and keep.dtype == np.bool:
+            elif isinstance(v, list) and keep.dtype == bool:
                 self._stats[k] = [a for i, a in enumerate(v) if keep[i]]
             elif isinstance(v, list):
                 self._stats[k] = [v[i] for i in keep]
@@ -60,7 +59,6 @@ class MaskData:
             if k not in self._stats or self._stats[k] is None:
                 self._stats[k] = deepcopy(v)
             elif isinstance(v, np.ndarray):
-                print('---', k, v.shape, self._stats[k].shape)
                 self._stats[k] = np.concatenate([self._stats[k], v], axis=0)
             elif isinstance(v, list):
                 self._stats[k] = self._stats[k] + deepcopy(v)
@@ -237,10 +235,10 @@ def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
 
 def uncrop_points(points: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
     x0, y0, _, _ = crop_box
-    offset = torch.tensor([[x0, y0]], device=points.device)
+    offset = np.asarray([[x0, y0]])
     # Check if points has a channel dimension
     if len(points.shape) == 3:
-        offset = offset.unsqueeze(1)
+        offset = offset[None]
     return points + offset
 
 
@@ -307,27 +305,27 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     if len(shape) > 2:
         masks = masks.reshape((np.prod(shape[:-3]), ) + shape[-3:])
     else:
-        masks = masks[None, :]
+        masks = masks
 
     # Get top and bottom edges
     in_height = np.max(masks, axis=-1)
-    in_height_coords = in_height * np.arange(h)[None, :]
+    in_height_coords = in_height * np.arange(h)
     bottom_edges = np.max(in_height_coords, axis=-1)
     in_height_coords = in_height_coords + h * (~in_height)
     top_edges = np.min(in_height_coords, axis=-1)
 
     # Get left and right edges
     in_width = np.max(masks, axis=-2)
-    in_width_coords = in_width * np.arange(w)[None, :]
+    in_width_coords = in_width * np.arange(w)
     right_edges = np.max(in_width_coords, axis=-1)
     in_width_coords = in_width_coords + w * (~in_width)
     left_edges = np.min(in_width_coords, axis=-1)
 
     # If the mask is empty the right edge will be to the left of the left edge.
     # Replace these boxes with [0, 0, 0, 0]
-    empty_filter = (right_edges < left_edges) | (bottom_edges < top_edges)
-    out = np.stack([left_edges, top_edges, right_edges, bottom_edges], axis=-1)
-    out = out * (~empty_filter)[None, :]
+    empty_filter = ((right_edges < left_edges) | (bottom_edges < top_edges)).squeeze()
+    out = np.stack([left_edges, top_edges, right_edges, bottom_edges], axis=-1).squeeze()
+    out = out[~empty_filter]
 
     # Return to original shape
     # if len(shape) > 2:
