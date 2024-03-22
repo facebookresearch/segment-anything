@@ -1,6 +1,5 @@
 import numpy as np
 import tritonclient.http as httpclient
-import torch
 from typing import Optional, Tuple
 from PIL import Image
 from copy import deepcopy
@@ -77,13 +76,6 @@ class TritonSamPredictor(SamPredictor):
         self.input_w, self.input_h = resized_width, resized_height
         self.input_tensor = input_tensor
 
-    def set_torch_image(
-        self,
-        transformed_image: torch.Tensor,
-        original_image_size: Tuple[int, ...],
-    ):
-        raise NotImplementedError('set_torch_image')
-
     def _run_encoder(self):
         # Set Inputs
         input_tensors = [
@@ -158,24 +150,15 @@ class TritonSamPredictor(SamPredictor):
         retvals = self._run_decoder(decoder_inputs)
         return retvals['masks'], retvals["iou_predictions"], retvals['low_res_masks']
 
-    def predict_torch(
+    def predict_np(
         self,
-        point_coords: Optional[torch.Tensor],
-        point_labels: Optional[torch.Tensor],
-        boxes: Optional[torch.Tensor] = None,
-        mask_input: Optional[torch.Tensor] = None,
+        point_coords: Optional[np.ndarray],
+        point_labels: Optional[np.ndarray],
+        boxes: Optional[np.ndarray] = None,
+        mask_input: Optional[np.ndarray] = None,
         multimask_output: bool = True,
         return_logits: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
-        if point_coords is not None:
-            point_coords = point_coords.numpy()
-        if point_labels is not None:
-            point_labels = point_labels.numpy()
-        if boxes is not None:
-            boxes = boxes.numpy()
-        if mask_input is not None:
-            mask_input = mask_input.numpy()
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
         retvals = self.predict(
             point_coords=point_coords,

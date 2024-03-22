@@ -5,8 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
-import torch
-from torchvision.ops.boxes import batched_nms, box_area  # type: ignore
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -133,7 +131,6 @@ class SamAutomaticMaskGenerator:
         self.min_mask_region_area = min_mask_region_area
         self.output_mode = output_mode
 
-    @torch.no_grad()
     def generate(self, image: np.ndarray) -> List[Dict[str, Any]]:
         """
         Generates masks for the given image.
@@ -274,6 +271,9 @@ class SamAutomaticMaskGenerator:
         keep = self._nms(boxes_for_nms, scores, iou_threshold)
         return keep
 
+    def _box_area(self, boxes):
+        return (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+
     def _generate_masks(self, image: np.ndarray) -> MaskData:
         orig_size = image.shape[:2]
         crop_boxes, layer_idxs = generate_crop_boxes(
@@ -289,7 +289,7 @@ class SamAutomaticMaskGenerator:
         # Remove duplicate masks between crops
         if len(crop_boxes) > 1:
             # Prefer masks from smaller crops
-            scores = 1 / box_area(data["crop_boxes"])
+            scores = 1 / self._box_area(data["crop_boxes"])
             keep_by_nms = self._batched_nms(
                 data["boxes"].astype(float),
                 scores,
@@ -352,9 +352,9 @@ class SamAutomaticMaskGenerator:
 
         # Run model on this batch
         transformed_points = self.predictor.transform.apply_coords(points, im_size)
-        in_points = torch.as_tensor(transformed_points, device=self.predictor.device)
-        in_labels = torch.ones(in_points.shape[0], dtype=torch.int, device=in_points.device)
-        masks, iou_preds, _ = self.predictor.predict_torch(
+        in_points = np.asarray(transformed_points)
+        in_labels = np.ones(in_points.shape[0], dtype=int)
+        masks, iou_preds, _ = self.predictor.predict_np(
             in_points[:, None, :],
             in_labels[:, None],
             multimask_output=True,
@@ -425,18 +425,18 @@ class SamAutomaticMaskGenerator:
             mask, changed = remove_small_regions(mask, min_area, mode="islands")
             unchanged = unchanged and not changed
 
-            new_masks.append(torch.as_tensor(mask).unsqueeze(0))
+            new_masks.append(np.asarray(mask)[None])
             # Give score=0 to changed masks and score=1 to unchanged masks
             # so NMS will prefer ones that didn't need postprocessing
             scores.append(float(unchanged))
 
         # Recalculate boxes and remove any new duplicates
-        masks = torch.cat(new_masks, dim=0)
+        masks = np.concatenate(new_masks, axis=0)
         boxes = batched_mask_to_box(masks)
-        keep_by_nms = self._batched_nms(
+        keep_by_nms = SamAutomaticMaskGenerator._batched_nms(
             boxes.float(),
-            torch.as_tensor(scores),
-            torch.zeros_like(boxes[:, 0]),  # categories
+            np.asarray(scores),
+            np.zeros_like(boxes[:, 0]),  # categories
             iou_threshold=nms_thresh,
         )
 
