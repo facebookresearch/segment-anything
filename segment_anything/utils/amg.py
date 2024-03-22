@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
-import torch
 
 import math
 from copy import deepcopy
@@ -67,8 +66,8 @@ class MaskData:
 
 
 def is_box_near_crop_edge(
-    boxes: torch.Tensor, crop_box: List[int], orig_box: List[int], atol: float = 20.0
-) -> torch.Tensor:
+    boxes: np.ndarray, crop_box: List[int], orig_box: List[int], atol: float = 20.0
+) -> np.ndarray:
     """Filter masks at the edge of a crop, but not at the edge of the original image."""
     boxes = uncrop_boxes_xyxy(boxes, crop_box).astype(float)
     near_crop_edge = np.isclose(boxes, np.asarray(crop_box)[None, :], atol=atol, rtol=0)
@@ -77,7 +76,7 @@ def is_box_near_crop_edge(
     return np.any(near_crop_edge, axis=1)
 
 
-def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
+def box_xyxy_to_xywh(box_xyxy: np.ndarray) -> np.ndarray:
     box_xywh = deepcopy(box_xyxy)
     box_xywh[2] = box_xywh[2] - box_xywh[0]
     box_xywh[3] = box_xywh[3] - box_xywh[1]
@@ -93,7 +92,7 @@ def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
         yield [arg[b * batch_size : (b + 1) * batch_size] for arg in args]
 
 
-def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
+def mask_to_rle(tensor: np.ndarray) -> List[Dict[str, Any]]:
     """
     Encodes masks to an uncompressed RLE, in the format expected by
     pycoco tools.
@@ -144,15 +143,15 @@ def area_from_rle(rle: Dict[str, Any]) -> int:
 
 
 def calculate_stability_score(
-    masks: torch.Tensor, mask_threshold: float, threshold_offset: float
-) -> torch.Tensor:
+    masks: np.ndarray, mask_threshold: float, threshold_offset: float
+) -> np.ndarray:
     """
     Computes the stability score for a batch of masks. The stability
     score is the IoU between the binary masks obtained by thresholding
     the predicted mask logits at high and low values.
     """
     # One mask is always contained inside the other.
-    # Save memory by preventing unnecessary cast to torch.int64
+    # Save memory by preventing unnecessary cast to int64
     intersections = (
         (masks > (mask_threshold + threshold_offset))
         .sum(-1, dtype=np.int16)
@@ -224,7 +223,7 @@ def generate_crop_boxes(
     return crop_boxes, layer_idxs
 
 
-def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
+def uncrop_boxes_xyxy(boxes: np.ndarray, crop_box: List[int]) -> np.ndarray:
     x0, y0, _, _ = crop_box
     offset = np.asarray([[x0, y0, x0, y0]])
     # Check if boxes has a channel dimension
@@ -233,7 +232,7 @@ def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
     return boxes + offset
 
 
-def uncrop_points(points: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
+def uncrop_points(points: np.ndarray, crop_box: List[int]) -> np.ndarray:
     x0, y0, _, _ = crop_box
     offset = np.asarray([[x0, y0]])
     # Check if points has a channel dimension
@@ -243,8 +242,8 @@ def uncrop_points(points: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
 
 
 def uncrop_masks(
-    masks: torch.Tensor, crop_box: List[int], orig_h: int, orig_w: int
-) -> torch.Tensor:
+    masks: np.ndarray, crop_box: List[int], orig_h: int, orig_w: int
+) -> np.ndarray:
     x0, y0, x1, y1 = crop_box
     if x0 == 0 and y0 == 0 and x1 == orig_w and y1 == orig_h:
         return masks
@@ -290,12 +289,12 @@ def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
     return rle
 
 
-def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
+def batched_mask_to_box(masks: np.ndarray) -> np.ndarray:
     """
     Calculates boxes in XYXY format around masks. Return [0,0,0,0] for
     an empty mask. For input shape C1xC2x...xHxW, the output shape is C1xC2x...x4.
     """
-    # torch.max below raises an error on empty inputs, just skip in this case
+    # max below raises an error on empty inputs, just skip in this case
     if len(masks) == 0:
         return np.zeros(*masks.shape[:-2], 4)
 

@@ -21,7 +21,7 @@ from .utils.amg import (
     coco_encode_rle,
     generate_crop_boxes,
     is_box_near_crop_edge,
-    mask_to_rle_pytorch,
+    mask_to_rle,
     remove_small_regions,
     rle_to_mask,
     uncrop_boxes_xyxy,
@@ -394,7 +394,7 @@ class SamAutomaticMaskGenerator:
         # Compress to RLE
         data["masks"] = uncrop_masks(data["masks"], crop_box, orig_h, orig_w)
         data["masks"] = data["masks"][:, 0]  # A test
-        data["rles"] = mask_to_rle_pytorch(data["masks"])
+        data["rles"] = mask_to_rle(data["masks"])
         del data["masks"]
 
         return data
@@ -444,7 +444,7 @@ class SamAutomaticMaskGenerator:
         for i_mask in keep_by_nms:
             if scores[i_mask] == 0.0:
                 mask_torch = masks[i_mask].unsqueeze(0)
-                mask_data["rles"][i_mask] = mask_to_rle_pytorch(mask_torch)[0]
+                mask_data["rles"][i_mask] = mask_to_rle(mask_torch)[0]
                 mask_data["boxes"][i_mask] = boxes[i_mask]  # update res directly
         mask_data.filter(keep_by_nms)
 
