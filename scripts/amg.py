@@ -218,7 +218,7 @@ def main(args: argparse.Namespace) -> None:
     output_mode = "coco_rle" if args.convert_to_rle else "binary_mask"
     amg_kwargs = get_amg_kwargs(args)
     generator = SamAutomaticMaskGenerator(
-        TritonSamPredictor(host=args.host, proxy_host=args.proxy_host, proxy_port=args.proxy_port),
+        TritonSamPredictor(sam=None, host=args.host, proxy_host=args.proxy_host, proxy_port=args.proxy_port),
         output_mode=output_mode, **amg_kwargs
     )
 
