@@ -22,14 +22,14 @@ class MaskData:
     def __init__(self, **kwargs) -> None:
         for v in kwargs.values():
             assert isinstance(
-                v, (list, np.ndarray, torch.Tensor)
-            ), "MaskData only supports list, numpy arrays, and torch tensors."
+                v, (list, np.ndarray)
+            ), "MaskData only supports list, numpy arrays"
         self._stats = dict(**kwargs)
 
     def __setitem__(self, key: str, item: Any) -> None:
         assert isinstance(
-            item, (list, np.ndarray, torch.Tensor)
-        ), "MaskData only supports list, numpy arrays, and torch tensors."
+            item, (list, np.ndarray)
+        ), "MaskData only supports list, numpy arrays"
         self._stats[key] = item
 
     def __delitem__(self, key: str) -> None:
@@ -41,15 +41,14 @@ class MaskData:
     def items(self) -> ItemsView[str, Any]:
         return self._stats.items()
 
-    def filter(self, keep: torch.Tensor) -> None:
+    def filter(self, keep) -> None:
         for k, v in self._stats.items():
             if v is None:
                 self._stats[k] = None
-            elif isinstance(v, torch.Tensor):
-                self._stats[k] = v[torch.as_tensor(keep, device=v.device)]
             elif isinstance(v, np.ndarray):
-                self._stats[k] = v[keep.detach().cpu().numpy()]
-            elif isinstance(v, list) and keep.dtype == torch.bool:
+                print('shapes', k, v.shape, keep.shape)
+                self._stats[k] = v[keep]
+            elif isinstance(v, list) and keep.dtype == np.bool:
                 self._stats[k] = [a for i, a in enumerate(v) if keep[i]]
             elif isinstance(v, list):
                 self._stats[k] = [v[i] for i in keep]
@@ -60,32 +59,24 @@ class MaskData:
         for k, v in new_stats.items():
             if k not in self._stats or self._stats[k] is None:
                 self._stats[k] = deepcopy(v)
-            elif isinstance(v, torch.Tensor):
-                self._stats[k] = torch.cat([self._stats[k], v], dim=0)
             elif isinstance(v, np.ndarray):
+                print('---', k, v.shape, self._stats[k].shape)
                 self._stats[k] = np.concatenate([self._stats[k], v], axis=0)
             elif isinstance(v, list):
                 self._stats[k] = self._stats[k] + deepcopy(v)
             else:
                 raise TypeError(f"MaskData key {k} has an unsupported type {type(v)}.")
 
-    def to_numpy(self) -> None:
-        for k, v in self._stats.items():
-            if isinstance(v, torch.Tensor):
-                self._stats[k] = v.detach().cpu().numpy()
-
 
 def is_box_near_crop_edge(
     boxes: torch.Tensor, crop_box: List[int], orig_box: List[int], atol: float = 20.0
 ) -> torch.Tensor:
     """Filter masks at the edge of a crop, but not at the edge of the original image."""
-    crop_box_torch = torch.as_tensor(crop_box, dtype=torch.float, device=boxes.device)
-    orig_box_torch = torch.as_tensor(orig_box, dtype=torch.float, device=boxes.device)
-    boxes = uncrop_boxes_xyxy(boxes, crop_box).float()
-    near_crop_edge = torch.isclose(boxes, crop_box_torch[None, :], atol=atol, rtol=0)
-    near_image_edge = torch.isclose(boxes, orig_box_torch[None, :], atol=atol, rtol=0)
-    near_crop_edge = torch.logical_and(near_crop_edge, ~near_image_edge)
-    return torch.any(near_crop_edge, dim=1)
+    boxes = uncrop_boxes_xyxy(boxes, crop_box).astype(float)
+    near_crop_edge = np.isclose(boxes, np.asarray(crop_box)[None, :], atol=atol, rtol=0)
+    near_image_edge = np.isclose(boxes, np.asarray(orig_box)[None, :], atol=atol, rtol=0)
+    near_crop_edge = np.logical_and(near_crop_edge, ~near_image_edge)
+    return np.any(near_crop_edge, axis=1)
 
 
 def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
@@ -111,26 +102,27 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
     """
     # Put in fortran order and flatten h,w
     b, h, w = tensor.shape
-    tensor = tensor.permute(0, 2, 1).flatten(1)
+    # tensor = tensor.permute(0, 2, 1).flatten(1)
+    tensor = np.transpose(tensor, (0, 2, 1)).reshape(tensor.shape[0], -1)
 
     # Compute change indices
     diff = tensor[:, 1:] ^ tensor[:, :-1]
-    change_indices = diff.nonzero()
+    change_indices = np.transpose(diff.nonzero())
 
     # Encode run length
     out = []
     for i in range(b):
         cur_idxs = change_indices[change_indices[:, 0] == i, 1]
-        cur_idxs = torch.cat(
+        cur_idxs = np.concatenate(
             [
-                torch.tensor([0], dtype=cur_idxs.dtype, device=cur_idxs.device),
+                np.asarray([0], dtype=cur_idxs.dtype),
                 cur_idxs + 1,
-                torch.tensor([h * w], dtype=cur_idxs.dtype, device=cur_idxs.device),
+                np.asarray([h * w], dtype=cur_idxs.dtype),
             ]
         )
         btw_idxs = cur_idxs[1:] - cur_idxs[:-1]
         counts = [] if tensor[i, 0] == 0 else [0]
-        counts.extend(btw_idxs.detach().cpu().tolist())
+        counts.extend(btw_idxs.tolist())
         out.append({"size": [h, w], "counts": counts})
     return out
 
@@ -165,13 +157,13 @@ def calculate_stability_score(
     # Save memory by preventing unnecessary cast to torch.int64
     intersections = (
         (masks > (mask_threshold + threshold_offset))
-        .sum(-1, dtype=torch.int16)
-        .sum(-1, dtype=torch.int32)
+        .sum(-1, dtype=np.int16)
+        .sum(-1, dtype=np.int32)
     )
     unions = (
         (masks > (mask_threshold - threshold_offset))
-        .sum(-1, dtype=torch.int16)
-        .sum(-1, dtype=torch.int32)
+        .sum(-1, dtype=np.int16)
+        .sum(-1, dtype=np.int32)
     )
     return intersections / unions
 
@@ -236,10 +228,10 @@ def generate_crop_boxes(
 
 def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
     x0, y0, _, _ = crop_box
-    offset = torch.tensor([[x0, y0, x0, y0]], device=boxes.device)
+    offset = np.asarray([[x0, y0, x0, y0]])
     # Check if boxes has a channel dimension
     if len(boxes.shape) == 3:
-        offset = offset.unsqueeze(1)
+        offset = offset[None]
     return boxes + offset
 
 
@@ -261,7 +253,7 @@ def uncrop_masks(
     # Coordinate transform masks
     pad_x, pad_y = orig_w - (x1 - x0), orig_h - (y1 - y0)
     pad = (x0, pad_x - x0, y0, pad_y - y0)
-    return torch.nn.functional.pad(masks, pad, value=0)
+    return np.pad(masks, pad, constant_values=0)
 
 
 def remove_small_regions(
@@ -306,41 +298,42 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     an empty mask. For input shape C1xC2x...xHxW, the output shape is C1xC2x...x4.
     """
     # torch.max below raises an error on empty inputs, just skip in this case
-    if torch.numel(masks) == 0:
-        return torch.zeros(*masks.shape[:-2], 4, device=masks.device)
+    if len(masks) == 0:
+        return np.zeros(*masks.shape[:-2], 4)
 
     # Normalize shape to CxHxW
     shape = masks.shape
     h, w = shape[-2:]
     if len(shape) > 2:
-        masks = masks.flatten(0, -3)
+        masks = masks.reshape((np.prod(shape[:-3]), ) + shape[-3:])
     else:
-        masks = masks.unsqueeze(0)
+        masks = masks[None, :]
 
     # Get top and bottom edges
-    in_height, _ = torch.max(masks, dim=-1)
-    in_height_coords = in_height * torch.arange(h, device=in_height.device)[None, :]
-    bottom_edges, _ = torch.max(in_height_coords, dim=-1)
+    in_height = np.max(masks, axis=-1)
+    in_height_coords = in_height * np.arange(h)[None, :]
+    bottom_edges = np.max(in_height_coords, axis=-1)
     in_height_coords = in_height_coords + h * (~in_height)
-    top_edges, _ = torch.min(in_height_coords, dim=-1)
+    top_edges = np.min(in_height_coords, axis=-1)
 
     # Get left and right edges
-    in_width, _ = torch.max(masks, dim=-2)
-    in_width_coords = in_width * torch.arange(w, device=in_width.device)[None, :]
-    right_edges, _ = torch.max(in_width_coords, dim=-1)
+    in_width = np.max(masks, axis=-2)
+    in_width_coords = in_width * np.arange(w)[None, :]
+    right_edges = np.max(in_width_coords, axis=-1)
     in_width_coords = in_width_coords + w * (~in_width)
-    left_edges, _ = torch.min(in_width_coords, dim=-1)
+    left_edges = np.min(in_width_coords, axis=-1)
 
     # If the mask is empty the right edge will be to the left of the left edge.
     # Replace these boxes with [0, 0, 0, 0]
     empty_filter = (right_edges < left_edges) | (bottom_edges < top_edges)
-    out = torch.stack([left_edges, top_edges, right_edges, bottom_edges], dim=-1)
-    out = out * (~empty_filter).unsqueeze(-1)
+    out = np.stack([left_edges, top_edges, right_edges, bottom_edges], axis=-1)
+    out = out * (~empty_filter)[None, :]
 
     # Return to original shape
-    if len(shape) > 2:
-        out = out.reshape(*shape[:-2], 4)
-    else:
-        out = out[0]
+    # if len(shape) > 2:
+    #     print('++++', out.shape, shape)
+    #     out = out.reshape(*shape[:-2], 4)
+    # else:
+    #     out = out[0]
 
     return out

@@ -185,7 +185,7 @@ class TritonSamPredictor(SamPredictor):
             multimask_output=multimask_output,
             return_logits=return_logits
         )
-        return [torch.from_numpy(val) for val in retvals]
+        return retvals
 
     def get_image_embedding(self):
         pass
