@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 from PIL import Image
 from copy import deepcopy
 
-from .predictor import SamPredictor
 from .utils.transforms import ResizeLongestSide
 
 class MockModel():
@@ -12,11 +11,10 @@ class MockModel():
     mask_threshold = 0
 
 
-class TritonSamPredictor(SamPredictor):
+class TritonSamPredictor():
 
     def __init__(
         self,
-        sam=None,
         host='localhost',
         encoder_model_name='sam_encoder',
         decoder_model_name='sam_decoder',
@@ -28,10 +26,32 @@ class TritonSamPredictor(SamPredictor):
         self._encoder_model_name = encoder_model_name
         self._decoder_model_name = decoder_model_name
         self._client = httpclient.InferenceServerClient(url=host, proxy_host=proxy_host, proxy_port=proxy_port)
-        self.is_image_set = False
         self.img_size = img_size
         self.transform = ResizeLongestSide(img_size)
         self.model = MockModel()
+        self.reset_image()
+
+    def get_image_embedding(self) -> np.ndarray:
+        """
+        Returns the image embeddings for the currently set image, with
+        shape 1xCxHxW, where C is the embedding dimension and (H,W) are
+        the embedding spatial dimension of SAM (typically C=256, H=W=64).
+        """
+        if not self.is_image_set:
+            raise RuntimeError(
+                "An image must be set with .set_image(...) to generate an embedding."
+            )
+        assert self.features is not None, "Features must exist if an image has been set."
+        return self.features
+
+    def reset_image(self) -> None:
+        """Resets the currently set image."""
+        self.is_image_set = False
+        self.features = None
+        self.orig_h = None
+        self.orig_w = None
+        self.input_h = None
+        self.input_w = None
 
     def set_image(
         self,
@@ -91,7 +111,8 @@ class TritonSamPredictor(SamPredictor):
         query_response = self._client.infer(model_name=self._encoder_model_name,
                                         inputs=input_tensors,
                                         outputs=outputs)
-        return query_response.as_numpy("embeddings")
+        self.features = query_response.as_numpy("embeddings")
+        return self.features
 
     def _run_decoder(self, params):
         input_tensors = []

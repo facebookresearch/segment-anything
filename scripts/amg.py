@@ -6,7 +6,7 @@
 
 import cv2  # type: ignore
 
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, TritonSamPredictor
+from segment_anything import SamAutomaticMaskGenerator, TritonSamPredictor
 
 import argparse
 import json
@@ -212,13 +212,10 @@ def get_amg_kwargs(args):
 
 def main(args: argparse.Namespace) -> None:
     print("Loading model...")
-    # TODO: possibly load also standard local model
-    # sam = sam_model_registry[args.model_type](checkpoint=args.checkpoint)
-    # _ = sam.to(device=args.device)
     output_mode = "coco_rle" if args.convert_to_rle else "binary_mask"
     amg_kwargs = get_amg_kwargs(args)
     generator = SamAutomaticMaskGenerator(
-        TritonSamPredictor(sam=None, host=args.host, proxy_host=args.proxy_host, proxy_port=args.proxy_port),
+        TritonSamPredictor(host=args.host, proxy_host=args.proxy_host, proxy_port=args.proxy_port),
         output_mode=output_mode, **amg_kwargs
     )
 

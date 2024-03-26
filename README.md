@@ -32,10 +32,10 @@ git clone git@github.com:facebookresearch/segment-anything.git
 cd segment-anything; pip install -e .
 ```
 
-The following optional dependencies are necessary for mask post-processing, saving masks in COCO format, the example notebooks, and exporting the model in ONNX format. `jupyter` is also required to run the example notebooks.
+The following optional dependencies are necessary for mask post-processing, saving masks in COCO format, the example notebooks. `jupyter` is also required to run the example notebooks.
 
 ```
-pip install opencv-python pycocotools matplotlib onnxruntime onnx
+pip install opencv-python pycocotools matplotlib
 ```
 
 ## <a name="GettingStarted"></a>Getting Started

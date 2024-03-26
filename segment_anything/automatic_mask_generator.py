@@ -8,8 +8,7 @@ import numpy as np
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from .modeling import Sam
-from .predictor import SamPredictor
+from .triton_predictor import TritonSamPredictor
 from .utils.amg import (
     MaskData,
     area_from_rle,
@@ -33,7 +32,7 @@ from .utils.amg import (
 class SamAutomaticMaskGenerator:
     def __init__(
         self,
-        predictor: SamPredictor,
+        predictor: TritonSamPredictor,
         points_per_side: Optional[int] = 32,
         points_per_batch: int = 64,
         pred_iou_thresh: float = 0.88,
@@ -55,7 +54,7 @@ class SamAutomaticMaskGenerator:
         for SAM with a ViT-H backbone.
 
         Arguments:
-          predictor (SamPredictor): The SAM predictor to use for mask prediction.
+          predictor (TritonSamPredictor): The SAM predictor to use for mask prediction.
           points_per_side (int or None): The number of points to be sampled
             along one side of the image. The total number of points is
             points_per_side**2. If None, 'point_grids' must provide explicit
@@ -443,8 +442,8 @@ class SamAutomaticMaskGenerator:
         # Only recalculate RLEs for masks that have changed
         for i_mask in keep_by_nms:
             if scores[i_mask] == 0.0:
-                mask_torch = masks[i_mask].unsqueeze(0)
-                mask_data["rles"][i_mask] = mask_to_rle(mask_torch)[0]
+                mask_np = masks[i_mask].unsqueeze(0)
+                mask_data["rles"][i_mask] = mask_to_rle(mask_np)[0]
                 mask_data["boxes"][i_mask] = boxes[i_mask]  # update res directly
         mask_data.filter(keep_by_nms)
 
