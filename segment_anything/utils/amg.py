@@ -6,7 +6,6 @@
 
 import numpy as np
 import torch
-
 import math
 from copy import deepcopy
 from itertools import product
@@ -18,17 +17,18 @@ class MaskData:
     A structure for storing masks and their related data in batched format.
     Implements basic filtering and concatenation.
     """
+    SUPPORTED_TYPES = (list, np.ndarray, torch.Tensor)
 
     def __init__(self, **kwargs) -> None:
         for v in kwargs.values():
             assert isinstance(
-                v, (list, np.ndarray, torch.Tensor)
+                v, (self.SUPPORTED_TYPES)
             ), "MaskData only supports list, numpy arrays, and torch tensors."
         self._stats = dict(**kwargs)
 
     def __setitem__(self, key: str, item: Any) -> None:
         assert isinstance(
-            item, (list, np.ndarray, torch.Tensor)
+            item, (self.SUPPORTED_TYPES)
         ), "MaskData only supports list, numpy arrays, and torch tensors."
         self._stats[key] = item
 
