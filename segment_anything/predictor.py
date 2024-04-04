@@ -267,3 +267,35 @@ class SamPredictor:
         self.orig_w = None
         self.input_h = None
         self.input_w = None
+  
+    def save_image_embedding(self, path):
+      """
+      Saves the image embedding to a file.
+
+      Args:
+        path (str): The path to save the image embedding.
+
+      Raises:
+        RuntimeError: If an image has not been set with `.set_image()` before saving the embedding.
+      """
+      if not self.is_image_set:
+        raise RuntimeError("An image must be set with .set_image() before saving an embedding.")
+      res = {
+        'original_size': self.original_size,
+        'input_size': self.input_size,
+        'features': self.features.cpu().numpy(),
+        'is_image_set': True,
+      }
+      torch.save(res, path)
+
+    def load_image_embedding(self, path):
+        """
+        Loads the image embedding from the specified path and sets it as an attribute of the object.
+
+        Args:
+          path (str): The path to the image embedding file.
+        """
+        res = torch.load(path, map_location=self.device)
+        for k, v in res.items():
+          setattr(self, k, v)
+        self.features = torch.from_numpy(self.features).to(self.device)
