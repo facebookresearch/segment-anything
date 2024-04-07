@@ -166,6 +166,8 @@ class Block(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = x
         x = self.norm1(x)
+        H, W = 0, 0
+        pad_hw = (0, 0)
         # Window partition
         if self.window_size > 0:
             H, W = x.shape[1], x.shape[2]
