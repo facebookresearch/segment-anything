@@ -1,0 +1,219 @@
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_l_encoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_l_encoder.cat"
+channelsIn rgba.red,rgba.green,rgba.blue
+channelsOut rgba.alpha
+modelId SAM_L_encoder
+name CatFileCreator_L_ENCODER
+tile_color 0xe9ff55ff
+xpos 1610
+ypos -250
+postage_stamp false
+}
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_h_encoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_h_encoder.cat"
+channelsIn rgba.red,rgba.green,rgba.blue
+channelsOut rgba.alpha
+modelId SAM_H_encoder
+name CatFileCreator_H_ENCODER
+tile_color 0xe9ff55ff
+xpos 1610
+ypos -202
+postage_stamp false
+}
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_b_encoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_b_encoder.cat"
+channelsIn rgba.red,rgba.green,rgba.blue
+channelsOut rgba.alpha
+modelId SAM_B_encoder
+name CatFileCreator_B_ENCODER
+tile_color 0xe9ff55ff
+xpos 1610
+ypos -298
+postage_stamp false
+}
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_b_decoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_b_decoder.cat"
+channelsIn rgba.alpha
+channelsOut rgba.alpha
+modelId SAM_B_decoder
+name CatFileCreator_B_DECODER
+tile_color 0xe9ff55ff
+xpos 1830
+ypos -299
+postage_stamp false
+addUserKnob {20 User}
+addUserKnob {7 point_01_x l "Point 01 x"}
+addUserKnob {7 point_01_y l y -STARTLINE}
+addUserKnob {6 label_01 l subtractive -STARTLINE}
+addUserKnob {7 point_02_x l "Point 02 x"}
+addUserKnob {7 point_02_y l y -STARTLINE}
+addUserKnob {6 label_02 l subtractive -STARTLINE}
+addUserKnob {7 point_03_x l "Point 03 x"}
+addUserKnob {7 point_03_y l y -STARTLINE}
+addUserKnob {6 label_03 l subtractive -STARTLINE}
+addUserKnob {7 point_04_x l "Point 04 x"}
+addUserKnob {7 point_04_y l y -STARTLINE}
+addUserKnob {6 label_04 l subtractive -STARTLINE}
+addUserKnob {7 point_05_x l "Point 05 x"}
+addUserKnob {7 point_05_y l y -STARTLINE}
+addUserKnob {6 label_05 l subtractive -STARTLINE}
+addUserKnob {7 point_06_x l "Point 06 x"}
+addUserKnob {7 point_06_y l y -STARTLINE}
+addUserKnob {6 label_06 l subtractive -STARTLINE}
+addUserKnob {7 point_07_x l "Point 07 x"}
+addUserKnob {7 point_07_y l y -STARTLINE}
+addUserKnob {6 label_07 l subtractive -STARTLINE}
+addUserKnob {7 point_08_x l "Point 08 x"}
+addUserKnob {7 point_08_y l y -STARTLINE}
+addUserKnob {6 label_08 l subtractive -STARTLINE}
+addUserKnob {7 point_09_x l "Point 09 x"}
+addUserKnob {7 point_09_y l y -STARTLINE}
+addUserKnob {6 label_09 l subtractive -STARTLINE}
+addUserKnob {7 point_10_x l "Point 10 x"}
+addUserKnob {7 point_10_y l y -STARTLINE}
+addUserKnob {6 label_10 l subtractive -STARTLINE}
+addUserKnob {7 point_11_x l "Point 11 x"}
+addUserKnob {7 point_11_y l y -STARTLINE}
+addUserKnob {6 label_11 l subtractive -STARTLINE}
+addUserKnob {7 point_12_x l "Point 12 x"}
+addUserKnob {7 point_12_y l y -STARTLINE}
+addUserKnob {6 label_12 l subtractive -STARTLINE}
+addUserKnob {7 point_13_x l "Point 13 x"}
+addUserKnob {7 point_13_y l y -STARTLINE}
+addUserKnob {6 label_13 l subtractive -STARTLINE}
+addUserKnob {7 point_14_x l "Point 14 x"}
+addUserKnob {7 point_14_y l y -STARTLINE}
+addUserKnob {6 label_14 l subtractive -STARTLINE}
+addUserKnob {7 point_15_x l "Point 15 x"}
+addUserKnob {7 point_15_y l y -STARTLINE}
+addUserKnob {6 label_15 l subtractive -STARTLINE}
+addUserKnob {7 point_16_x l "Point 16 x"}
+addUserKnob {7 point_16_y l y -STARTLINE}
+addUserKnob {6 label_16 l subtractive -STARTLINE}
+}
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_l_decoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_l_decoder.cat"
+channelsIn rgba.alpha
+channelsOut rgba.alpha
+modelId SAM_L_decoder
+name CatFileCreator_L_DECODER
+tile_color 0xe9ff55ff
+xpos 1830
+ypos -250
+postage_stamp false
+addUserKnob {20 User}
+addUserKnob {7 point_01_x l "Point 01 x"}
+addUserKnob {7 point_01_y l y -STARTLINE}
+addUserKnob {6 label_01 l subtractive -STARTLINE}
+addUserKnob {7 point_02_x l "Point 02 x"}
+addUserKnob {7 point_02_y l y -STARTLINE}
+addUserKnob {6 label_02 l subtractive -STARTLINE}
+addUserKnob {7 point_03_x l "Point 03 x"}
+addUserKnob {7 point_03_y l y -STARTLINE}
+addUserKnob {6 label_03 l subtractive -STARTLINE}
+addUserKnob {7 point_04_x l "Point 04 x"}
+addUserKnob {7 point_04_y l y -STARTLINE}
+addUserKnob {6 label_04 l subtractive -STARTLINE}
+addUserKnob {7 point_05_x l "Point 05 x"}
+addUserKnob {7 point_05_y l y -STARTLINE}
+addUserKnob {6 label_05 l subtractive -STARTLINE}
+addUserKnob {7 point_06_x l "Point 06 x"}
+addUserKnob {7 point_06_y l y -STARTLINE}
+addUserKnob {6 label_06 l subtractive -STARTLINE}
+addUserKnob {7 point_07_x l "Point 07 x"}
+addUserKnob {7 point_07_y l y -STARTLINE}
+addUserKnob {6 label_07 l subtractive -STARTLINE}
+addUserKnob {7 point_08_x l "Point 08 x"}
+addUserKnob {7 point_08_y l y -STARTLINE}
+addUserKnob {6 label_08 l subtractive -STARTLINE}
+addUserKnob {7 point_09_x l "Point 09 x"}
+addUserKnob {7 point_09_y l y -STARTLINE}
+addUserKnob {6 label_09 l subtractive -STARTLINE}
+addUserKnob {7 point_10_x l "Point 10 x"}
+addUserKnob {7 point_10_y l y -STARTLINE}
+addUserKnob {6 label_10 l subtractive -STARTLINE}
+addUserKnob {7 point_11_x l "Point 11 x"}
+addUserKnob {7 point_11_y l y -STARTLINE}
+addUserKnob {6 label_11 l subtractive -STARTLINE}
+addUserKnob {7 point_12_x l "Point 12 x"}
+addUserKnob {7 point_12_y l y -STARTLINE}
+addUserKnob {6 label_12 l subtractive -STARTLINE}
+addUserKnob {7 point_13_x l "Point 13 x"}
+addUserKnob {7 point_13_y l y -STARTLINE}
+addUserKnob {6 label_13 l subtractive -STARTLINE}
+addUserKnob {7 point_14_x l "Point 14 x"}
+addUserKnob {7 point_14_y l y -STARTLINE}
+addUserKnob {6 label_14 l subtractive -STARTLINE}
+addUserKnob {7 point_15_x l "Point 15 x"}
+addUserKnob {7 point_15_y l y -STARTLINE}
+addUserKnob {6 label_15 l subtractive -STARTLINE}
+addUserKnob {7 point_16_x l "Point 16 x"}
+addUserKnob {7 point_16_y l y -STARTLINE}
+addUserKnob {6 label_16 l subtractive -STARTLINE}
+}
+CatFileCreator {
+torchScriptFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_h_decoder.pt"
+catFile "\[python \{nuke.script_directory()\}]/Cattery/SegmentAnything/sam_vit_h_decoder.cat"
+channelsIn rgba.alpha
+channelsOut rgba.alpha
+modelId SAM_H_decoder
+name CatFileCreator_H_DECODER
+tile_color 0xe9ff55ff
+xpos 1830
+ypos -202
+postage_stamp false
+addUserKnob {20 User}
+addUserKnob {7 point_01_x l "Point 01 x"}
+addUserKnob {7 point_01_y l y -STARTLINE}
+addUserKnob {6 label_01 l subtractive -STARTLINE}
+addUserKnob {7 point_02_x l "Point 02 x"}
+addUserKnob {7 point_02_y l y -STARTLINE}
+addUserKnob {6 label_02 l subtractive -STARTLINE}
+addUserKnob {7 point_03_x l "Point 03 x"}
+addUserKnob {7 point_03_y l y -STARTLINE}
+addUserKnob {6 label_03 l subtractive -STARTLINE}
+addUserKnob {7 point_04_x l "Point 04 x"}
+addUserKnob {7 point_04_y l y -STARTLINE}
+addUserKnob {6 label_04 l subtractive -STARTLINE}
+addUserKnob {7 point_05_x l "Point 05 x"}
+addUserKnob {7 point_05_y l y -STARTLINE}
+addUserKnob {6 label_05 l subtractive -STARTLINE}
+addUserKnob {7 point_06_x l "Point 06 x"}
+addUserKnob {7 point_06_y l y -STARTLINE}
+addUserKnob {6 label_06 l subtractive -STARTLINE}
+addUserKnob {7 point_07_x l "Point 07 x"}
+addUserKnob {7 point_07_y l y -STARTLINE}
+addUserKnob {6 label_07 l subtractive -STARTLINE}
+addUserKnob {7 point_08_x l "Point 08 x"}
+addUserKnob {7 point_08_y l y -STARTLINE}
+addUserKnob {6 label_08 l subtractive -STARTLINE}
+addUserKnob {7 point_09_x l "Point 09 x"}
+addUserKnob {7 point_09_y l y -STARTLINE}
+addUserKnob {6 label_09 l subtractive -STARTLINE}
+addUserKnob {7 point_10_x l "Point 10 x"}
+addUserKnob {7 point_10_y l y -STARTLINE}
+addUserKnob {6 label_10 l subtractive -STARTLINE}
+addUserKnob {7 point_11_x l "Point 11 x"}
+addUserKnob {7 point_11_y l y -STARTLINE}
+addUserKnob {6 label_11 l subtractive -STARTLINE}
+addUserKnob {7 point_12_x l "Point 12 x"}
+addUserKnob {7 point_12_y l y -STARTLINE}
+addUserKnob {6 label_12 l subtractive -STARTLINE}
+addUserKnob {7 point_13_x l "Point 13 x"}
+addUserKnob {7 point_13_y l y -STARTLINE}
+addUserKnob {6 label_13 l subtractive -STARTLINE}
+addUserKnob {7 point_14_x l "Point 14 x"}
+addUserKnob {7 point_14_y l y -STARTLINE}
+addUserKnob {6 label_14 l subtractive -STARTLINE}
+addUserKnob {7 point_15_x l "Point 15 x"}
+addUserKnob {7 point_15_y l y -STARTLINE}
+addUserKnob {6 label_15 l subtractive -STARTLINE}
+addUserKnob {7 point_16_x l "Point 16 x"}
+addUserKnob {7 point_16_y l y -STARTLINE}
+addUserKnob {6 label_16 l subtractive -STARTLINE}
+}

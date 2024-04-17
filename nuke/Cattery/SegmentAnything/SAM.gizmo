@@ -1,0 +1,331 @@
+Group {
+name Segment_Anything
+onCreate "from random import randint;nuke.thisNode().knob(\"unique_id\").setValue(randint(1,10**8))"
+knobChanged sam.sam()
+addUserKnob {20 SegmentAnythingTab l "Segment Anything" t "Segment Anything"}
+addUserKnob {26 ""}
+addUserKnob {4 detail l "Detail Level" M {Low Medium High "" "" ""}}
+addUserKnob {4 view l View M {"Final Result" "Mask Overlay" "Encoded Matte" "" ""}}
+view "Mask Overlay"
+addUserKnob {6 bypass_srgb l "Bypass sRGB conversion" +STARTLINE}
+addUserKnob {3 unique_id l "Unique ID" +INVISIBLE}
+addUserKnob {26 ""}
+addUserKnob {26 control_points l "Control Points" T " "}
+addUserKnob {41 add_track l "add point" -STARTLINE T Tracker1.add_track}
+addUserKnob {41 del_tracks l "delete points" -STARTLINE T Tracker1.del_tracks}
+addUserKnob {41 select_all l "select all" -STARTLINE T Tracker1.select_all}
+addUserKnob {41 tracks l " " t sam T Tracker1.tracks}
+addUserKnob {26 overlay_controls l "<b>Overlay Controls</b>"}
+addUserKnob {41 white l "Overlay Colors" T Grade2.white}
+addUserKnob {26 preprocessing l <b>Pre-Processing</b>}
+addUserKnob {22 export_encoded_matte l "Export Encoded Matte" t "\t" T "sam_node = nuke.thisNode()\nsam_node.knob(\"view\").setValue(\"Encoded Matte\")\n\n\nwith nuke.root():\n    sam_node.setSelected(False)\n    write = nuke.createNode(\"Write\", inpanel=False)\n    write.knob(\"channels\").setValue(\"alpha\")\n    write.knob(\"file_type\").setValue(\"exr\")\n    write.knob(\"datatype\").setValue(\"32 bit float\")\n    write.setXYpos(sam_node.xpos() + 60, sam_node.ypos() + 60)\n    write.setInput(0, sam_node)\n    sam_node.setSelected(True)\n\n" +STARTLINE}
+addUserKnob {20 tracker l Tracker}
+addUserKnob {26 "" l <b>General</b>}
+addUserKnob {41 channels l "track channels" T Tracker1.channels}
+addUserKnob {41 pretrack_filter l "pre-track filter" T Tracker1.pretrack_filter}
+addUserKnob {41 adjust_for_luminance_changes l "adjust for luminance changes" T Tracker1.adjust_for_luminance_changes}
+addUserKnob {41 max_iter l "max iterations" T Tracker1.max_iter}
+addUserKnob {41 epsilon l "epsilon / resolution" T Tracker1.epsilon}
+addUserKnob {41 max_error T Tracker1.max_error}
+addUserKnob {41 clamp_footage l "clamp super-white, sub-zero footage" T Tracker1.clamp_footage}
+addUserKnob {41 show_error_on_track_link l "show error on track paths" T Tracker1.show_error_on_track_link}
+addUserKnob {41 hide_progress_bar l "hide progress bar" T Tracker1.hide_progress_bar}
+addUserKnob {41 zoom_window T Tracker1.zoom_window}
+addUserKnob {41 snap_to_markers l "snap to markers" T Tracker1.snap_to_markers}
+addUserKnob {41 zoom_window_behaviour l "show zoom window" T Tracker1.zoom_window_behaviour}
+addUserKnob {41 zoom_window_size l "zoom size / mag." T Tracker1.zoom_window_size}
+addUserKnob {41 zoom_magnification_size l "" -STARTLINE T Tracker1.zoom_magnification_size}
+addUserKnob {41 zoom_window_filter_behaviour l "zoom window filter" T Tracker1.zoom_window_filter_behaviour}
+addUserKnob {41 zoom_window_wh_size l "zoom w/h size" T Tracker1.zoom_window_wh_size}
+addUserKnob {41 zoom_magnification l "zoom magnification" T Tracker1.zoom_magnification}
+addUserKnob {20 Auto-Tracking n 2}
+addUserKnob {41 predict_track l "predict track" T Tracker1.predict_track}
+addUserKnob {41 warp l "warp type" T Tracker1.warp}
+addUserKnob {41 grab_behaviour l "pattern grab behaviour" T Tracker1.grab_behaviour}
+addUserKnob {41 grab_interval l "every n frames" T Tracker1.grab_interval}
+addUserKnob {41 grab_error_above l "when error > " T Tracker1.grab_error_above}
+addUserKnob {41 grab_error_below l "when error < " T Tracker1.grab_error_below}
+addUserKnob {41 auto_regrab_pattern l "when tracking is stopped" T Tracker1.auto_regrab_pattern}
+addUserKnob {41 regrab_when_offset l "when tracker is moved" T Tracker1.regrab_when_offset}
+addUserKnob {20 "" n -1}
+addUserKnob {20 "Keyframe Tracking" n 2}
+addUserKnob {41 retrack_on_move l "re-track when keyframe is moved / created" T Tracker1.retrack_on_move}
+addUserKnob {41 create_key_on_move l "create new key when track is moved" T Tracker1.create_key_on_move}
+addUserKnob {41 autotracks_delete_keyframes l "auto-tracks delete keyframes" T Tracker1.autotracks_delete_keyframes}
+addUserKnob {41 keyframe_display l "keyframe display" T Tracker1.keyframe_display}
+addUserKnob {41 keyframe_size l "keyframe size" T Tracker1.keyframe_size}
+addUserKnob {41 max_number_of_keyframe_tracks_to_display l "on-screen key-track limit" T Tracker1.max_number_of_keyframe_tracks_to_display}
+addUserKnob {20 "" n -1}
+addUserKnob {20 infoTab l Info}
+addUserKnob {26 toolName l "" +STARTLINE T "<font size='7'>SEGMENT ANYTHING</font><br>v1.0.0 | Released 2024-04-16"}
+addUserKnob {26 ""}
+addUserKnob {26 authorName l "" +STARTLINE T "Rafael Silva"}
+addUserKnob {26 authorMail l "" +STARTLINE T "<a href=\"mailto:rafael@rafael.ai\"><span style=\"color:#C8C8C8;\">rafael@rafael.ai</a>"}
+addUserKnob {26 ""}
+addUserKnob {26 credit l "" +STARTLINE T "<br>TorchScript port based on the official <b>Meta</b> implementation.<br><a href=\"https://github.com/facebookresearch/segment-anything\"><span style=\"color:#C8C8C8;\">https://segment-anything.com/</a><br>"}
+addUserKnob {26 ""}
+addUserKnob {26 thanks l "" +STARTLINE T "Don't hesitate to reach out with any bugs, suggestions, or questions."}
+}
+BackdropNode {
+inputs 0
+name BackdropNode1
+tile_color 0x444444ff
+xpos -8
+ypos -85
+bdwidth 457
+bdheight 265
+}
+StickyNote {
+inputs 0
+name StickyNote1
+label "<Left>\nThis not really needed, but now\nthe encoded matte looks fancy!\n\nFile size stays almost the same\ndue to the compression."
+xpos 22
+ypos 3
+}
+Input {
+inputs 0
+name img
+xpos 510
+ypos -586
+}
+set Na0236660 [stack 0]
+Assert {
+expression {{"\$nuke_version > 13.2"}}
+message "Nuke13.2 or higher required."
+name Assert1
+xpos 510
+ypos -514
+}
+Shuffle2 {
+fromInput1 {{0} B}
+fromInput2 {{0} B}
+name Shuffle1
+label "ensure rgba"
+xpos 510
+ypos -448
+}
+Crop {
+box {0 0 {width} {height}}
+crop false
+name Crop1
+xpos 510
+ypos -370
+}
+set N179ba3f0 [stack 0]
+Reformat {
+format "1024 1024 0 0 1024 1024 1 square_1K"
+box_width 1024
+box_height 1024
+box_fixed true
+resize distort
+name Reformat1
+xpos 510
+ypos -304
+}
+Colorspace {
+colorspace_out sRGB
+name Colorspace1
+xpos 510
+ypos -226
+disable {{parent.bypass_srgb}}
+}
+Inference {
+modelFile "\[\nset base_name \"sam_vit_\"\nset file_extension \"_encoder.cat\"\n\nswitch \[value parent.detail] \{\n    \"Low\" \{\n        set model_variant \"b\"\n    \}\n    \"Medium\" \{\n        set model_variant \"l\"\n    \}\n    \"High\" \{\n        set model_variant \"h\"\n    \}\n    default \{\n        set model_variant \"\"\n    \}\n\}\n\nset file_name \"\$\{base_name\}\$\{model_variant\}\$\{file_extension\}\"\nreturn \[lsearch -inline \[plugins -all \$file_name] *.cat]\n]"
+serialiseKnob {}
+name Inference_SAM_Encoder
+tile_color 0xe9ff55ff
+label "\[file tail \[value modelFile]]"
+xpos 510
+ypos -136
+disable {{"\[\n    # Disable node if encoded_matte (input1) is connected \n    # or if there is no image (input0) \n    if \{\[exists parent.input1] || !\[exists parent.input0]\} \{\n        return 1\n    \} else \{\n        return 0\n    \}\n]\n\n"}}
+}
+set Na0104a50 [stack 0]
+Dot {
+name Dot5
+xpos 324
+ypos -126
+}
+Shuffle2 {
+fromInput1 {{0} B}
+fromInput2 {{0} B}
+mappings "4 rgba.alpha 0 3 rgba.red 0 0 rgba.alpha 0 3 rgba.green 0 1 rgba.alpha 0 3 rgba.blue 0 2 rgba.alpha 0 3 rgba.alpha 0 3"
+name Shuffle2
+xpos 290
+ypos -34
+}
+Grid {
+output rgb
+opacity 0.4
+number 16
+name Grid1
+xpos 290
+ypos 14
+}
+Text2 {
+font_size_toolbar 28
+font_width_toolbar 100
+font_height_toolbar 100
+output rgb
+message "SAM - ENCODED MATTE\ndetail level: \[string tolower \[value parent.detail]]\nsource: \[file tail \[value \[topnode parent].file]]"
+old_message {{83 65 77 32 45 32 69 78 67 79 68 69 68 32 77 65 84 84 69 10 100 101 116 97 105 108 32 108 101 118 101 108 58 32 104 105 103 104 10 115 111 117 114 99 101 58 32 91 102 105 108 101 32 116 97 105 108 32 91 118 97 108 117 101 32 110 111 100 101 55 102 52 48 97 48 49 50 54 52 50 48 46 102 105 108 101 93 93}
+  }
+old_expression_markers {{34 37 65 80}
+  }
+box {128 138 1024 {height}}
+yjustify bottom
+transforms {{0 2}
+  }
+font_size_values {{0 48 1 48 2 48 3 48 4 48 5 48 6 48 7 48 8 48 9 48 10 48 11 48 12 48 13 48 14 48 15 48 16 48 17 48 18 48 19 48 20 28 21 28 22 28 23 28 24 28 25 28 26 28 27 28 28 28 29 28 30 28 31 28 32 28 33 28 34 28 35 28 36 28 37 28 38 28 39 28 40 28 41 28 42 28 43 28 44 28 45 28 46 28 47 28 48 28 49 28 50 28 51 28 52 28 53 28 54 28 55 28 56 28 57 28 58 28 59 28 60 28 61 28 62 28 6 56 7 56 8 56 9 56 10 56 11 56 12 56 13 56 14 56 15 56 16 56 17 56 18 56}
+  }
+baseline_values {{6 0 7 0 8 0 9 0 10 0 11 0 12 0 13 0 14 0 15 0 16 0 17 0 18 0 6 0.9 7 0.9 8 0.9 9 0.9 10 0.9 11 0.9 12 0.9 13 0.9 14 0.9 15 0.9 16 0.9 17 0.9 18 0.9}
+  }
+cursor_position 122
+font {{ Arial : Regular : truetype/Vera.ttf : 0 }}
+font_size 28
+leading 0.2
+scale {1 1}
+cursor_initialised true
+autofit_bbox false
+initial_cursor_position {{0 1024}
+  }
+group_animations {{0} imported: 0 selected: items: "root transform"}
+animation_layers {{1 11 512 512 0 0 1 1 0 0 0 0}
+  }
+color 0.8
+enable_background true
+background_border_x 1024
+background_border_y 30
+name Text1
+xpos 290
+ypos 62
+}
+Shuffle2 {
+fromInput1 {{0} B}
+fromInput2 {{0} B}
+mappings "4 rgba.alpha 0 3 rgba.alpha 0 3 white -1 -1 rgba.red 0 0 rgba.green 0 1 rgba.green 0 1 rgba.blue 0 2 rgba.blue 0 2"
+name Shuffle3
+xpos 290
+ypos 110
+}
+ModifyMetaData {
+metadata {
+ {set sam/detailLevel "\[string tolower \[value parent.detail]]"}
+}
+name ModifyMetaData1
+label "\[string tolower \[value parent.detail]]"
+xpos 290
+ypos 200
+}
+Dot {
+name Dot2
+xpos 324
+ypos 282
+}
+Input {
+inputs 0
+name encoded_matte
+xpos 620
+ypos -586
+number 1
+}
+Assert {
+expression {{"width == 1024 && height == 1024"}}
+message "Please connect an 'encoded matte' generated by the SAM tool."
+name Assert2
+label "Is 1024x1024?"
+selected true
+xpos 620
+ypos -521
+disable {{"!\[exists parent.input1]"}}
+}
+Dot {
+name Dot8
+xpos 654
+ypos -102
+}
+push $Na0104a50
+Switch {
+inputs 2
+which {{"\[exists parent.input1]\n"}}
+name Switch2
+xpos 510
+ypos -34
+}
+Inference {
+modelFile "\[\nset base_name \"sam_vit_\"\nset file_extension \"_decoder.cat\"\n\nswitch \[value parent.detail] \{\n    \"Low\" \{\n        set model_variant \"b\"\n    \}\n    \"Medium\" \{\n        set model_variant \"l\"\n    \}\n    \"High\" \{\n        set model_variant \"h\"\n    \}\n    default \{\n        set model_variant \"\"\n    \}\n\}\n\nset file_name \"\$\{base_name\}\$\{model_variant\}\$\{file_extension\}\"\nreturn \[lsearch -inline \[plugins -all \$file_name] *.cat]\n]"
+serialiseKnob {point_01_x:{Tracker1.tracks.1.enable*Tracker1.tracks.1.track_x/parent.width*1024};point_01_y:{Tracker1.tracks.1.enable*Tracker1.tracks.1.track_y/parent.height*1024};label_01:{Tracker1.tracks.1.enable*Tracker1.tracks.1.S};point_02_x:{Tracker1.tracks.2.enable*Tracker1.tracks.2.track_x/parent.width*1024};point_02_y:{Tracker1.tracks.2.enable*Tracker1.tracks.2.track_y/parent.height*1024};label_02:{Tracker1.tracks.2.enable*Tracker1.tracks.2.S};point_03_x:{Tracker1.tracks.3.enable*Tracker1.tracks.3.track_x/parent.width*1024};point_03_y:{Tracker1.tracks.3.enable*Tracker1.tracks.3.track_y/parent.height*1024};label_03:{Tracker1.tracks.3.enable*Tracker1.tracks.3.S};point_04_x:{Tracker1.tracks.4.enable*Tracker1.tracks.4.track_x/parent.width*1024};point_04_y:{Tracker1.tracks.4.enable*Tracker1.tracks.4.track_y/parent.height*1024};label_04:{Tracker1.tracks.4.enable*Tracker1.tracks.4.S};point_05_x:{Tracker1.tracks.5.enable*Tracker1.tracks.5.track_x/parent.width*1024};point_05_y:{Tracker1.tracks.5.enable*Tracker1.tracks.5.track_y/parent.height*1024};label_05:{Tracker1.tracks.5.enable*Tracker1.tracks.5.S};point_06_x:{Tracker1.tracks.6.enable*Tracker1.tracks.6.track_x/parent.width*1024};point_06_y:{Tracker1.tracks.6.enable*Tracker1.tracks.6.track_y/parent.height*1024};label_06:{Tracker1.tracks.6.enable*Tracker1.tracks.6.S};point_07_x:{Tracker1.tracks.7.enable*Tracker1.tracks.7.track_x/parent.width*1024};point_07_y:{Tracker1.tracks.7.enable*Tracker1.tracks.7.track_y/parent.height*1024};label_07:{Tracker1.tracks.7.enable*Tracker1.tracks.7.S};point_08_x:{Tracker1.tracks.8.enable*Tracker1.tracks.8.track_x/parent.width*1024};point_08_y:{Tracker1.tracks.8.enable*Tracker1.tracks.8.track_y/parent.height*1024};label_08:{Tracker1.tracks.8.enable*Tracker1.tracks.8.S};point_09_x:{Tracker1.tracks.9.enable*Tracker1.tracks.9.track_x/parent.width*1024};point_09_y:{Tracker1.tracks.9.enable*Tracker1.tracks.9.track_y/parent.height*1024};label_09:{Tracker1.tracks.9.enable*Tracker1.tracks.9.S};point_10_x:{Tracker1.tracks.10.enable*Tracker1.tracks.10.track_x/parent.width*1024};point_10_y:{Tracker1.tracks.10.enable*Tracker1.tracks.10.track_y/parent.height*1024};label_10:{Tracker1.tracks.10.enable*Tracker1.tracks.10.S};point_11_x:{Tracker1.tracks.11.enable*Tracker1.tracks.11.track_x/parent.width*1024};point_11_y:{Tracker1.tracks.11.enable*Tracker1.tracks.11.track_y/parent.height*1024};label_11:{Tracker1.tracks.11.enable*Tracker1.tracks.11.S};point_12_x:{Tracker1.tracks.12.enable*Tracker1.tracks.12.track_x/parent.width*1024};point_12_y:{Tracker1.tracks.12.enable*Tracker1.tracks.12.track_y/parent.height*1024};label_12:{Tracker1.tracks.12.enable*Tracker1.tracks.12.S};point_13_x:{Tracker1.tracks.13.enable*Tracker1.tracks.13.track_x/parent.width*1024};point_13_y:{Tracker1.tracks.13.enable*Tracker1.tracks.13.track_y/parent.height*1024};label_13:{Tracker1.tracks.13.enable*Tracker1.tracks.13.S};point_14_x:{Tracker1.tracks.14.enable*Tracker1.tracks.14.track_x/parent.width*1024};point_14_y:{Tracker1.tracks.14.enable*Tracker1.tracks.14.track_y/parent.height*1024};label_14:{Tracker1.tracks.14.enable*Tracker1.tracks.14.S};point_15_x:{Tracker1.tracks.15.enable*Tracker1.tracks.15.track_x/parent.width*1024};point_15_y:{Tracker1.tracks.15.enable*Tracker1.tracks.15.track_y/parent.height*1024};label_15:{Tracker1.tracks.15.enable*Tracker1.tracks.15.S};point_16_x:{Tracker1.tracks.16.enable*Tracker1.tracks.16.track_x/parent.width*1024};point_16_y:{Tracker1.tracks.16.enable*Tracker1.tracks.16.track_y/parent.height*1024};label_16:{Tracker1.tracks.16.enable*Tracker1.tracks.16.S};point_17_x:{Tracker1.tracks.17.enable*Tracker1.tracks.17.track_x/parent.width*1024};point_17_y:{Tracker1.tracks.17.enable*Tracker1.tracks.17.track_y/parent.height*1024};label_17:{Tracker1.tracks.17.enable*Tracker1.tracks.17.S};point_18_x:{Tracker1.tracks.18.enable*Tracker1.tracks.18.track_x/parent.width*1024};point_18_y:{Tracker1.tracks.18.enable*Tracker1.tracks.18.track_y/parent.height*1024};label_18:{Tracker1.tracks.18.enable*Tracker1.tracks.18.S};point_19_x:{Tracker1.tracks.19.enable*Tracker1.tracks.19.track_x/parent.width*1024};point_19_y:{Tracker1.tracks.19.enable*Tracker1.tracks.19.track_y/parent.height*1024};label_19:{Tracker1.tracks.19.enable*Tracker1.tracks.19.S};point_20_x:{Tracker1.tracks.20.enable*Tracker1.tracks.20.track_x/parent.width*1024};point_20_y:{Tracker1.tracks.20.enable*Tracker1.tracks.20.track_y/parent.height*1024};label_20:{Tracker1.tracks.20.enable*Tracker1.tracks.20.S};point_21_x:{Tracker1.tracks.21.enable*Tracker1.tracks.21.track_x/parent.width*1024};point_21_y:{Tracker1.tracks.21.enable*Tracker1.tracks.21.track_y/parent.height*1024};label_21:{Tracker1.tracks.21.enable*Tracker1.tracks.21.S};point_22_x:{Tracker1.tracks.22.enable*Tracker1.tracks.22.track_x/parent.width*1024};point_22_y:{Tracker1.tracks.22.enable*Tracker1.tracks.22.track_y/parent.height*1024};label_22:{Tracker1.tracks.22.enable*Tracker1.tracks.22.S};point_23_x:{Tracker1.tracks.23.enable*Tracker1.tracks.23.track_x/parent.width*1024};point_23_y:{Tracker1.tracks.23.enable*Tracker1.tracks.23.track_y/parent.height*1024};label_23:{Tracker1.tracks.23.enable*Tracker1.tracks.23.S};point_24_x:{Tracker1.tracks.24.enable*Tracker1.tracks.24.track_x/parent.width*1024};point_24_y:{Tracker1.tracks.24.enable*Tracker1.tracks.24.track_y/parent.height*1024};label_24:{Tracker1.tracks.24.enable*Tracker1.tracks.24.S};}
+name Inference_SAM_Decoder
+tile_color 0xe9ff55ff
+label "\[file tail \[value modelFile]]"
+xpos 510
+ypos 32
+}
+Grade {
+channels alpha
+gamma 2.2
+reverse true
+name Grade1
+label "linear > sRGB"
+xpos 510
+ypos 122
+}
+Reformat {
+type "to box"
+box_width {{Crop1.width}}
+box_height {{Crop1.height}}
+box_fixed true
+resize distort
+name Reformat2
+xpos 510
+ypos 206
+}
+push $N179ba3f0
+Dot {
+name Dot1
+xpos 764
+ypos -366
+}
+Dot {
+name Dot3
+xpos 764
+ypos 138
+}
+Copy {
+inputs 2
+from0 rgba.alpha
+to0 rgba.alpha
+name Copy1
+xpos 510
+ypos 272
+}
+set N1e604660 [stack 0]
+Grade {
+white {0.1 0.1 1.5 1}
+maskChannelInput rgba.alpha
+name Grade2
+xpos 620
+ypos 344
+}
+push $N1e604660
+Switch {
+inputs 3
+which {{parent.view x46 0}}
+name Switch1
+xpos 510
+ypos 422
+}
+Output {
+name Output1
+xpos 510
+ypos 614
+}
+push $Na0236660
+Tracker4 {
+name Tracker1
+xpos 400
+ypos -514
+addUserKnob {20 User}
+addUserKnob {3 unique_id l "Unique ID"}
+unique_id {{parent.unique_id+1}}
+}
+end_group

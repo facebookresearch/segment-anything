@@ -1,0 +1,13 @@
+{
+    "minimum_nuke_version_required": 13.2,
+    "version": 1,
+    "category": "Segmentation",
+    "description": "Segment Anything - https://github.com/rafaelperez/Segment-Anything-for-Nuke",
+    "cats": [
+        {
+            "filepath": "SAM.gizmo",
+            "name": "Segment Anything",
+            "icon": "SAM.png"
+        }
+    ]
+}
