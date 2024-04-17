@@ -30,6 +30,7 @@ model_ts*.txt
 *.swo
 *.swp
 *~
+**.autosave
 
 # editor settings
 .idea
