@@ -1,3 +1,7 @@
+## Latest updates
+
+Please check out our new release on SAM 2 ([demo](https://sam2.metademolab.com/), [repo](https://github.com/facebookresearch/segment-anything-2), [paper](https://ai.meta.com/research/publications/sam-2-segment-anything-in-images-and-videos/)), which enables segmenting anything in **images and videos**!
+
 # Segment Anything
 
 **[Meta AI Research, FAIR](https://ai.facebook.com/research/)**
