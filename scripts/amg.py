@@ -6,11 +6,12 @@
 
 import cv2  # type: ignore
 
-from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry, SamPredictor
 
 import argparse
 import json
 import os
+import numpy as np
 from typing import Any, Dict, List
 
 parser = argparse.ArgumentParser(
@@ -148,14 +149,28 @@ amg_settings.add_argument(
     ),
 )
 
+amg_settings.add_argument(
+    "--matting",
+    action='store_true',
+    help=(
+        "Whether to generate the matting result based on the mask."
+    ),
+)
 
-def write_masks_to_folder(masks: List[Dict[str, Any]], path: str) -> None:
+
+def write_masks_to_folder(masks: List[Dict[str, Any]], image: np.ndarray, matting: bool, path: str) -> None:
     header = "id,area,bbox_x0,bbox_y0,bbox_w,bbox_h,point_input_x,point_input_y,predicted_iou,stability_score,crop_box_x0,crop_box_y0,crop_box_w,crop_box_h"  # noqa
     metadata = [header]
     for i, mask_data in enumerate(masks):
         mask = mask_data["segmentation"]
         filename = f"{i}.png"
         cv2.imwrite(os.path.join(path, filename), mask * 255)
+
+        if matting:
+            matting_filename = f"{i}_matting.png"
+            matting_image = image * mask[:, :, np.newaxis]
+            cv2.imwrite(os.path.join(path, matting_filename), matting_image)
+
         mask_metadata = [
             str(i),
             str(mask_data["area"]),
@@ -225,14 +240,27 @@ def main(args: argparse.Namespace) -> None:
         save_base = os.path.join(args.output, base)
         if output_mode == "binary_mask":
             os.makedirs(save_base, exist_ok=False)
-            write_masks_to_folder(masks, save_base)
+            write_masks_to_folder(masks, image, args.matting, save_base)
         else:
             save_file = save_base + ".json"
             with open(save_file, "w") as f:
                 json.dump(masks, f)
     print("Done!")
 
+def get_image_npy():
+    checkpoint = "/Users/zaihui-101/dev/model/sam_vit_h_4b8939.pth"
+    model_type = "vit_h"
+    sam = sam_model_registry[model_type](checkpoint=checkpoint)
+    sam.to(device='cpu')
+    predictor = SamPredictor(sam)
+
+    image = cv2.imread('/Users/zaihui-101/dev/github/segment-anything/demo/src/assets/data/dogs.jpg')
+    predictor.set_image(image)
+    image_embedding = predictor.get_image_embedding().cpu().numpy()
+    np.save("/Users/zaihui-101/dev/github/segment-anything/demo/src/assets/data/dogs_embedding.npy", image_embedding)
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    main(args)
+    # args = parser.parse_args()
+    # main(args)
+    get_image_npy()
+
