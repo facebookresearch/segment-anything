@@ -9,8 +9,9 @@ import AppContext from "./hooks/createContext";
 import { ToolProps } from "./helpers/Interfaces";
 import * as _ from "underscore";
 
-const Tool = ({ handleMouseMove }: ToolProps) => {
+const Tool = ({ handleMouseMove, handleMouseDown }: ToolProps) => {
   const {
+    clicks: [, setClicks],
     image: [image],
     maskImg: [maskImg, setMaskImg],
   } = useContext(AppContext)!;
@@ -50,7 +51,11 @@ const Tool = ({ handleMouseMove }: ToolProps) => {
       {image && (
         <img
           onMouseMove={handleMouseMove}
-          onMouseOut={() => _.defer(() => setMaskImg(null))}
+          onMouseDown={handleMouseDown}
+          onMouseOut={() => _.defer(() => {
+            setMaskImg(null);
+            setClicks(null);
+          })}
           onTouchStart={handleMouseMove}
           src={image.src}
           className={`${

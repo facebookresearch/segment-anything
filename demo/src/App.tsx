@@ -18,9 +18,9 @@ const ort = require("onnxruntime-web");
 import npyjs from "npyjs";
 
 // Define image, embedding and model paths
-const IMAGE_PATH = "/assets/data/dogs.jpg";
-const IMAGE_EMBEDDING = "/assets/data/dogs_embedding.npy";
-const MODEL_DIR = "/model/sam_onnx_quantized_example.onnx";
+const IMAGE_PATH = "/assets/data/contemporary-dressers.jpg";
+const IMAGE_EMBEDDING = "/assets/data/segment_anything_embedding.npy";
+const MODEL_DIR = "/model/sam_vit_h_onnx_20240828.onnx";
 
 const App = () => {
   const {
@@ -85,6 +85,7 @@ const App = () => {
   const loadNpyTensor = async (tensorFile: string, dType: string) => {
     let npLoader = new npyjs();
     const npArray = await npLoader.load(tensorFile);
+    console.log(npArray.shape);
     const tensor = new ort.Tensor(dType, npArray.data, npArray.shape);
     return tensor;
   };

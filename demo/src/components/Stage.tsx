@@ -12,7 +12,7 @@ import AppContext from "./hooks/createContext";
 
 const Stage = () => {
   const {
-    clicks: [, setClicks],
+    clicks: [existingClicks, setClicks],
     image: [image],
   } = useContext(AppContext)!;
 
@@ -33,14 +33,33 @@ const Stage = () => {
     x *= imageScale;
     y *= imageScale;
     const click = getClick(x, y);
-    if (click) setClicks([click]);
-  }, 15);
+    // setClicks([click]);
+  }, 1);
+
+  const handleMouseDown = _.throttle((e: any) => {
+    let el = e.nativeEvent.target;
+    const rect = el.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    const imageScale = image ? image.width / el.offsetWidth : 1;
+    x *= imageScale;
+    y *= imageScale;
+    const click = getClick(x, y);
+
+    if (click) {
+      if (existingClicks) {
+        setClicks([...existingClicks, click]);
+      } else {
+        setClicks([click]);
+      }
+    }
+  }, 1);
 
   const flexCenterClasses = "flex items-center justify-center";
   return (
     <div className={`${flexCenterClasses} w-full h-full`}>
       <div className={`${flexCenterClasses} relative w-[90%] h-[90%]`}>
-        <Tool handleMouseMove={handleMouseMove} />
+        <Tool handleMouseMove={handleMouseMove} handleMouseDown={handleMouseDown} />
       </div>
     </div>
   );
