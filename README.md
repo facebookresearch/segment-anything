@@ -1,10 +1,10 @@
 ## Latest updates -- SAM 2: Segment Anything in Images and Videos
 
-Please check out our new release on **Segment Anything Model 2 (SAM 2)**.
+Please check out our new release on [**Segment Anything Model 2 (SAM 2)**](https://github.com/facebookresearch/segment-anything-2).
 
-* SAM 2 paper: https://arxiv.org/abs/2408.00714
 * SAM 2 code: https://github.com/facebookresearch/segment-anything-2
 * SAM 2 demo: https://sam2.metademolab.com/
+* SAM 2 paper: https://arxiv.org/abs/2408.00714
 
  ![SAM 2 architecture](https://github.com/facebookresearch/segment-anything-2/blob/main/assets/model_diagram.png?raw=true)
 
