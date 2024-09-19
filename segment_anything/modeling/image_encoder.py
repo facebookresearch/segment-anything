@@ -62,12 +62,13 @@ class ImageEncoderViT(nn.Module):
             embed_dim=embed_dim,
         )
 
-        self.pos_embed: Optional[nn.Parameter] = None
         if use_abs_pos:
             # Initialize absolute positional embedding with pretrain image size.
             self.pos_embed = nn.Parameter(
                 torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim)
             )
+        else:
+            self.pos_embed = None
 
         self.blocks = nn.ModuleList()
         for i in range(depth):
@@ -167,9 +168,11 @@ class Block(nn.Module):
         shortcut = x
         x = self.norm1(x)
         # Window partition
+        H, W = x.shape[1], x.shape[2]
         if self.window_size > 0:
-            H, W = x.shape[1], x.shape[2]
             x, pad_hw = window_partition(x, self.window_size)
+        else:
+            pad_hw = 0, 0  # not used but required to support torch.jit.script
 
         x = self.attn(x)
         # Reverse window partition
