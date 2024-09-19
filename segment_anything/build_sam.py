@@ -11,36 +11,39 @@ from functools import partial
 from .modeling import ImageEncoderViT, MaskDecoder, PromptEncoder, Sam, TwoWayTransformer
 
 
-def build_sam_vit_h(checkpoint=None):
+def build_sam_vit_h(checkpoint=None, **kwargs):
     return _build_sam(
         encoder_embed_dim=1280,
         encoder_depth=32,
         encoder_num_heads=16,
         encoder_global_attn_indexes=[7, 15, 23, 31],
         checkpoint=checkpoint,
+        **kwargs,
     )
 
 
 build_sam = build_sam_vit_h
 
 
-def build_sam_vit_l(checkpoint=None):
+def build_sam_vit_l(checkpoint=None, **kwargs):
     return _build_sam(
         encoder_embed_dim=1024,
         encoder_depth=24,
         encoder_num_heads=16,
         encoder_global_attn_indexes=[5, 11, 17, 23],
         checkpoint=checkpoint,
+        **kwargs,
     )
 
 
-def build_sam_vit_b(checkpoint=None):
+def build_sam_vit_b(checkpoint=None, **kwargs):
     return _build_sam(
         encoder_embed_dim=768,
         encoder_depth=12,
         encoder_num_heads=12,
         encoder_global_attn_indexes=[2, 5, 8, 11],
         checkpoint=checkpoint,
+        **kwargs,
     )
 
 
@@ -58,7 +61,12 @@ def _build_sam(
     encoder_num_heads,
     encoder_global_attn_indexes,
     checkpoint=None,
+    **kwargs,
 ):
+    window_size = kwargs.get("window_size", 14)
+    if window_size <= 0:
+        window_size = 14
+
     prompt_embed_dim = 256
     image_size = 1024
     vit_patch_size = 16
@@ -75,7 +83,7 @@ def _build_sam(
             qkv_bias=True,
             use_rel_pos=True,
             global_attn_indexes=encoder_global_attn_indexes,
-            window_size=14,
+            window_size=window_size,
             out_chans=prompt_embed_dim,
         ),
         prompt_encoder=PromptEncoder(
