@@ -290,6 +290,28 @@ def remove_small_regions(
     mask = np.isin(regions, fill_labels)
     return mask, True
 
+def remove_big_regions(
+    mask: np.ndarray, area_thresh: float, mode: str
+) -> Tuple[np.ndarray, bool]:
+
+    import cv2  # type: ignore
+
+    assert mode in ["holes", "islands"]
+    correct_holes = mode == "holes"
+    working_mask = (correct_holes ^ mask).astype(np.uint8)
+    n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(working_mask, 8)
+    sizes = stats[:, -1][1:]  # Row 0 is background label
+    big_regions = [i + 1 for i, s in enumerate(sizes) if s > area_thresh]
+    if len(big_regions) == 0:
+        return mask, False
+    fill_labels = [0] + big_regions
+    if not correct_holes:
+        fill_labels = [i for i in range(n_labels) if i not in fill_labels]
+        # If every region is above threshold, keep smallest
+        if len(fill_labels) == 0:
+            fill_labels = [int(np.argmin(sizes)) + 1]
+    mask = np.isin(regions, fill_labels)
+    return mask, True
 
 def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
     from pycocotools import mask as mask_utils  # type: ignore
