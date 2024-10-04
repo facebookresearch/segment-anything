@@ -123,9 +123,11 @@ class MaskDecoder(nn.Module):
         tokens = torch.cat((output_tokens, sparse_prompt_embeddings), dim=1)
 
         # Expand per-image data in batch direction to be per-mask
-        src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+        src_shape = (tokens.shape[0],*image_embeddings.shape[1:])
+        src = image_embeddings.expand(src_shape)
         src = src + dense_prompt_embeddings
-        pos_src = torch.repeat_interleave(image_pe, tokens.shape[0], dim=0)
+        pos_src_shape = (tokens.shape[0],*image_pe.shape[1:])
+        pos_src = image_pe.expand(pos_src_shape)
         b, c, h, w = src.shape
 
         # Run the transformer
