@@ -32,6 +32,7 @@ class ImageEncoderViT(nn.Module):
         use_rel_pos: bool = False,
         rel_pos_zero_init: bool = True,
         window_size: int = 0,
+        preconv_features: bool = False,
         global_attn_indexes: Tuple[int, ...] = (),
     ) -> None:
         """
@@ -54,6 +55,7 @@ class ImageEncoderViT(nn.Module):
         """
         super().__init__()
         self.img_size = img_size
+        self.preconv_features = preconv_features
 
         self.patch_embed = PatchEmbed(
             kernel_size=(patch_size, patch_size),
@@ -111,9 +113,13 @@ class ImageEncoderViT(nn.Module):
         for blk in self.blocks:
             x = blk(x)
 
+        x_preconv = x.permute(0, 3, 1, 2)
         x = self.neck(x.permute(0, 3, 1, 2))
 
-        return x
+        if self.preconv_features:
+            return x, x_preconv
+        else:
+            return x
 
 
 class Block(nn.Module):

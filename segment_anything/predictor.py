@@ -18,6 +18,7 @@ class SamPredictor:
     def __init__(
         self,
         sam_model: Sam,
+        preconv_features: bool = False
     ) -> None:
         """
         Uses SAM to calculate the image embedding for an image, and then
@@ -28,6 +29,7 @@ class SamPredictor:
         """
         super().__init__()
         self.model = sam_model
+        self.model.image_encoder.preconv_features = preconv_features
         self.transform = ResizeLongestSide(sam_model.image_encoder.img_size)
         self.reset_image()
 
@@ -227,7 +229,7 @@ class SamPredictor:
 
         # Predict masks
         low_res_masks, iou_predictions = self.model.mask_decoder(
-            image_embeddings=self.features,
+            image_embeddings=self.features[0] if type(self.features) == tuple else self.features,
             image_pe=self.model.prompt_encoder.get_dense_pe(),
             sparse_prompt_embeddings=sparse_embeddings,
             dense_prompt_embeddings=dense_embeddings,
