@@ -1,3 +1,5 @@
 torch
 torchvision
 scikit-image
+opencv-python
+matplotlib
