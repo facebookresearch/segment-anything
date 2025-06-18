@@ -41,6 +41,37 @@ def draw_points(image, points, color=(255, 0, 0), radius=8):
         cv2.circle(img_copy, pt, radius, color, -1)
     return img_copy
 
+
+def draw_directional_lines(image, points, length=50, color=(0, 255, 0), thickness=2):
+    """
+    Draw lines from each point away from the direction of its adjacent points.
+    Assumes 4 points ordered as: [top-left, top-right, bottom-left, bottom-right]
+    """
+    img_copy = image.copy()
+    for i, pt in enumerate(points):
+        # Get adjacent indices in the cyclic order of 4
+        adj_indices = [j for j in range(4) if j != i]
+        adj_vecs = []
+
+        for j in adj_indices:
+            adj_vec = np.array(points[j]) - np.array(pt)
+            adj_vecs.append(adj_vec)
+
+        # Average direction towards neighbors
+        avg_vec = np.mean(adj_vecs, axis=0)
+
+        # Reverse direction to point away
+        away_vec = -avg_vec
+        away_vec = away_vec / (np.linalg.norm(away_vec) + 1e-6) * length  # Normalize and scale
+
+        pt_start = tuple(map(int, pt))
+        pt_end = tuple(map(int, (np.array(pt) + away_vec).astype(int)))
+
+        cv2.line(img_copy, pt_start, pt_end, color, thickness)
+
+    return img_copy
+
+
 def load_yolo_annotations(file_path):
     annotations = []
     with open(file_path, 'r') as file:
@@ -89,13 +120,18 @@ def main(args):
     #predictor_original = SamPredictor(sam)
     mask_original = run_sam(predictor, image, yolo_box)
     points_original = get_extreme_points(mask_original)
+    #image_original_with_dots = draw_points(image, points_original)
     image_original_with_dots = draw_points(image, points_original)
+    image_original_with_dots = draw_directional_lines(image_original_with_dots, points_original)
+
 
     # Run SAM on Preprocessed
     #predictor_pre = SamPredictor(sam)
     mask_preprocessed = run_sam(predictor, preprocessed_image, yolo_box)
     points_pre = get_extreme_points(mask_preprocessed)
+    #image_preprocessed_with_dots = draw_points(preprocessed_image, points_pre)
     image_preprocessed_with_dots = draw_points(preprocessed_image, points_pre)
+    image_preprocessed_with_dots = draw_directional_lines(image_preprocessed_with_dots, points_pre)
 
     # Plot Results Side-by-Side
     fig, axs = plt.subplots(1, 2, figsize=(16, 10))

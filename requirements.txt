@@ -3,3 +3,4 @@ torchvision
 scikit-image
 opencv-python
 matplotlib
+scipy
