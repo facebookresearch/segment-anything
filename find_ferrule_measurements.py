@@ -90,7 +90,7 @@ def draw_edge_lines(img, pts, edge_ids, color=(255, 255, 0), thickness=2):
     return out
 
 def draw_height_measurement(img, line_triplet, avg_px,
-                            thickness=2, font_scale=0.9):
+                            thickness=2, font_scale=0.9, label_override=None):
     """
     line_triplet: [(pTop, pBot), (pTop, pBot), (pTop, pBot)]
                   returned by FerruleDimensions.get_height_lines()
@@ -105,7 +105,8 @@ def draw_height_measurement(img, line_triplet, avg_px,
     # label at the midpoint of centre line
     mx = (mid_line[0][0] + mid_line[1][0]) // 2
     my = (mid_line[0][1] + mid_line[1][1]) // 2
-    cv2.putText(out, f"{int(avg_px)}px", (mx, my),
+    label = label_override if label_override else f"{int(avg_px)}px"
+    cv2.putText(out, label, (mx, my),
                 cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0,0,255), 2,
                 cv2.LINE_AA)
     return out
@@ -197,6 +198,12 @@ class FerruleDimensions:
         self.predictor.set_image(self.image)
         masks, scores, _ = self.predictor.predict(box=box, multimask_output=True)
         return masks[np.argmax(scores)]
+
+    def compute_edge_lengths(self):
+        pts = np.array(self.refined_pts, float)
+        top = np.linalg.norm(pts[(self.top_idx + 1) % 4] - pts[self.top_idx])
+        bottom = np.linalg.norm(pts[(self.bottom_idx + 1) % 4] - pts[self.bottom_idx])
+        return top, bottom
 
     def _get_extreme_points(self):
         m = (self.mask * 255).astype(np.uint8)
@@ -560,7 +567,7 @@ def main(args):
     canvas = draw_points(canvas, ferrule.refined_pts)
     canvas = draw_polygon(canvas, ferrule.refined_pts)
     canvas = draw_edge_lines(canvas, ferrule.refined_pts, [ferrule.top_idx, ferrule.bottom_idx])
-    canvas = draw_height_measurement(canvas, ferrule.height_lines, ferrule.height_px)
+
 
     # Analyze ball
     ball = BallDimensions(image_rgb, ball_box, predictor)
@@ -569,12 +576,46 @@ def main(args):
     print ("Drawing ball on canvas")
     canvas = draw_enclosing_circle(canvas, ball.center_px, ball.radius_px)
 
-    # Convert ferrule length from pixels to inches using ball scale
+    top_px, bot_px = ferrule.compute_edge_lengths()
     try:
-        length_in_inches = ball.convert_pixels_to_inches(ferrule.height_px)
-        print(f"Ferrule height: {ferrule.height_px:.1f}px ≈ {length_in_inches:.3f}\"")
+        top_in = ball.convert_pixels_to_inches(top_px)
+        bot_in = ball.convert_pixels_to_inches(bot_px)
+        height_in = ball.convert_pixels_to_inches(ferrule.height_px)
+
+        print(f"Top edge: {top_px:.1f}px ≈ {top_in:.3f}\"")
+        print(f"Bottom edge: {bot_px:.1f}px ≈ {bot_in:.3f}\"")
+        print(f"Ferrule height: {ferrule.height_px:.1f}px ≈ {height_in:.3f}\"")
+
+        # Draw height label
+        canvas = draw_height_measurement(
+            canvas,
+            ferrule.height_lines,
+            ferrule.height_px,
+            label_override=f"{height_in:.3f}\""
+        )
+
+        # Add top label
+        top_mid = (
+            (ferrule.refined_pts[ferrule.top_idx][0] +
+             ferrule.refined_pts[(ferrule.top_idx + 1) % 4][0]) // 2,
+            (ferrule.refined_pts[ferrule.top_idx][1] +
+             ferrule.refined_pts[(ferrule.top_idx + 1) % 4][1]) // 2,
+        )
+        cv2.putText(canvas, f"{top_in:.3f}\"", top_mid,
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
+        # Add bottom label
+        bot_mid = (
+            (ferrule.refined_pts[ferrule.bottom_idx][0] +
+             ferrule.refined_pts[(ferrule.bottom_idx + 1) % 4][0]) // 2,
+            (ferrule.refined_pts[ferrule.bottom_idx][1] +
+             ferrule.refined_pts[(ferrule.bottom_idx + 1) % 4][1]) // 2,
+        )
+        cv2.putText(canvas, f"{bot_in:.3f}\"", bot_mid,
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
     except ValueError:
-        print("Could not convert ferrule length to inches – ball not found.")
+        print("Could not convert top/bottom edge lengths – ball not found.")
 
     print ("Displaying final result")
     # Display final result
