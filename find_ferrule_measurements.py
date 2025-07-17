@@ -530,7 +530,9 @@ def load_yolo_annotations(fp):
 # ────────────────────────────────────────────────────────────────
 
 def main(args):
-    # Load image
+    import json
+    import os
+
     print("Loading image")
     image_bgr = cv2.imread(args.image)
     if image_bgr is None:
@@ -539,7 +541,6 @@ def main(args):
     image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
 
     print("Loading annotations")
-    # Load annotations and find objects by hardcoded IDs
     annotations = load_yolo_annotations(args.yolo)
     ball_ann = next((ann for ann in annotations if ann["class_id"] == 0), None)
     ferrule_ann = next((ann for ann in annotations if ann["class_id"] == 1), None)
@@ -550,33 +551,31 @@ def main(args):
     ball_box = (ball_ann['x_center'], ball_ann['y_center'], ball_ann['width'], ball_ann['height'])
     ferrule_box = (ferrule_ann['x_center'], ferrule_ann['y_center'], ferrule_ann['width'], ferrule_ann['height'])
 
-    # Load SAM model
     sam_ckpt = "sam_vit_h_4b8939.pth"
     sam = sam_model_registry["vit_h"](checkpoint=sam_ckpt)
     print("Loading SAM")
     predictor = SamPredictor(sam)
 
-    # Analyze ferrule
     ferrule = FerruleDimensions(image_rgb, ferrule_box, predictor)
-    print ("Analyzing ferrule")
+    print("Analyzing ferrule")
     ferrule.process(visualize=True)
 
-    print ("Drawing ferrule on canvas")
+    print("Drawing ferrule on canvas")
     canvas = image_rgb.copy()
     canvas = draw_rotated_quadrants(canvas, ferrule.center, ferrule.quadrants_angle)
     canvas = draw_points(canvas, ferrule.refined_pts)
     canvas = draw_polygon(canvas, ferrule.refined_pts)
     canvas = draw_edge_lines(canvas, ferrule.refined_pts, [ferrule.top_idx, ferrule.bottom_idx])
 
-
-    # Analyze ball
     ball = BallDimensions(image_rgb, ball_box, predictor)
-    print ("Analyzing ball")
+    print("Analyzing ball")
     ball.process()
-    print ("Drawing ball on canvas")
+    print("Drawing ball on canvas")
     canvas = draw_enclosing_circle(canvas, ball.center_px, ball.radius_px)
 
     top_px, bot_px = ferrule.compute_edge_lengths()
+
+    measurements = {}
     try:
         top_in = ball.convert_pixels_to_inches(top_px)
         bot_in = ball.convert_pixels_to_inches(bot_px)
@@ -586,49 +585,71 @@ def main(args):
         print(f"Bottom edge: {bot_px:.1f}px ≈ {bot_in:.3f}\"")
         print(f"Ferrule height: {ferrule.height_px:.1f}px ≈ {height_in:.3f}\"")
 
-        # Draw height label
-        canvas = draw_height_measurement(
-            canvas,
-            ferrule.height_lines,
-            ferrule.height_px,
-            label_override=f"{height_in:.3f}\""
-        )
+        measurements = {
+            "top_edge": {"pixels": round(top_px, 1), "inches": round(top_in, 3)},
+            "bottom_edge": {"pixels": round(bot_px, 1), "inches": round(bot_in, 3)},
+            "ferrule_height": {"pixels": round(ferrule.height_px, 1), "inches": round(height_in, 3)}
+        }
 
-        # Add top label
+        canvas = draw_height_measurement(canvas, ferrule.height_lines, ferrule.height_px, label_override=f"{height_in:.3f}\"")
+
         top_mid = (
             (ferrule.refined_pts[ferrule.top_idx][0] +
              ferrule.refined_pts[(ferrule.top_idx + 1) % 4][0]) // 2,
             (ferrule.refined_pts[ferrule.top_idx][1] +
              ferrule.refined_pts[(ferrule.top_idx + 1) % 4][1]) // 2,
         )
-        cv2.putText(canvas, f"{top_in:.3f}\"", top_mid,
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+        cv2.putText(canvas, f"{top_in:.3f}\"", top_mid, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
-        # Add bottom label
         bot_mid = (
             (ferrule.refined_pts[ferrule.bottom_idx][0] +
              ferrule.refined_pts[(ferrule.bottom_idx + 1) % 4][0]) // 2,
             (ferrule.refined_pts[ferrule.bottom_idx][1] +
              ferrule.refined_pts[(ferrule.bottom_idx + 1) % 4][1]) // 2,
         )
-        cv2.putText(canvas, f"{bot_in:.3f}\"", bot_mid,
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+        cv2.putText(canvas, f"{bot_in:.3f}\"", bot_mid, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
 
     except ValueError:
         print("Could not convert top/bottom edge lengths – ball not found.")
 
-    print ("Displaying final result")
-    # Display final result
-    fig, ax = plt.subplots(figsize=(12, 12))
-    ax.imshow(canvas)
-    if ferrule.mask is not None:
-        ax.imshow(ferrule.mask, alpha=0.3, cmap='jet')
-    if ball.mask is not None:
-        ax.imshow(ball.mask, alpha=0.3, cmap='jet')
-    ax.axis('off')
-    ax.set_title("Ball + Ferrule Measurement")
-    plt.tight_layout()
-    plt.show()
+    if args.write:
+        print("📝 Saving output files...")
+
+        # Save processed image (no mask)
+        processed_bgr = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
+        cv2.imwrite("processed.jpg", processed_bgr)
+        print("✔️ Saved 'processed.jpg'")
+
+        # Save masked image using matplotlib to overlay masks
+        fig, ax = plt.subplots(figsize=(12, 12))
+        ax.imshow(canvas)
+        if ferrule.mask is not None:
+            ax.imshow(ferrule.mask, alpha=0.3, cmap='jet')
+        if ball.mask is not None:
+            ax.imshow(ball.mask, alpha=0.3, cmap='jet')
+        ax.axis('off')
+        ax.set_title("Ball + Ferrule Measurement (with Mask)")
+        plt.tight_layout()
+        fig.savefig("masked.jpg", format="jpg", dpi=300)
+        plt.close()
+        print("✔️ Saved 'masked.jpg'")
+
+        # Save measurements
+        with open("measurements.json", "w") as f:
+            json.dump(measurements, f, indent=2)
+        print("✔️ Saved 'measurements.json'")
+    else:
+        print("📺 Displaying final result")
+        fig, ax = plt.subplots(figsize=(12, 12))
+        ax.imshow(canvas)
+        if ferrule.mask is not None:
+            ax.imshow(ferrule.mask, alpha=0.3, cmap='jet')
+        if ball.mask is not None:
+            ax.imshow(ball.mask, alpha=0.3, cmap='jet')
+        ax.axis('off')
+        ax.set_title("Ball + Ferrule Measurement")
+        plt.tight_layout()
+        plt.show()
 
 
 # ────────────────────────────────────────────────────────────────
@@ -636,5 +657,5 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--image", required=True)
     p.add_argument("--yolo",  required=True)
-    #p.add_argument("--yolo-id", type=int, required=True)
+    p.add_argument("--write", action="store_true", help="Save final image to disk instead of displaying it.")
     main(p.parse_args())
