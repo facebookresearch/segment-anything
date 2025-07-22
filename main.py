@@ -1,9 +1,44 @@
 import os
 import boto3
 import subprocess
+import traceback
+import json
 
-S3_PREFIX = "orders"
 DEST_DIR = os.getcwd()
+
+class StepFunctionReporter:
+    def __init__(self, task_token=None):
+        self.task_token = task_token or os.environ.get("TASK_TOKEN")
+        self.client = boto3.client("stepfunctions") if self.task_token else None
+
+    def send_success(self, output: dict = None):
+        if self.client and self.task_token:
+            print("✅ Sending task success to Step Functions...")
+            self.client.send_task_success(
+                taskToken=self.task_token,
+                output=json.dumps(output or {"status": "done"})
+            )
+
+    def send_failure(self, error="TaskFailed", cause=None):
+        if self.client and self.task_token:
+            print("❌ Sending task failure to Step Functions...")
+            self.client.send_task_failure(
+                taskToken=self.task_token,
+                error=error,
+                cause=cause or "Unknown failure"
+            )
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        if exc_type is None:
+            self.send_success()
+        else:
+            cause = ''.join(traceback.format_exception(exc_type, exc_value, tb))
+            self.send_failure(error=exc_type.__name__, cause=cause)
+            return False  # Re-raise exception
+
 
 def parse_s3_path(s3_path):
     if not s3_path.startswith("s3://"):
@@ -17,64 +52,62 @@ def download_file(s3_client, bucket, key, dest_path):
     with open(dest_path, 'wb') as f:
         s3_client.download_fileobj(bucket, key, f)
 
-def download_order_files(order_id):
+def download_order_files(bucket, s3_prefix, order_id):
     s3 = boto3.client("s3")
-    bucket = os.environ.get("DATA_BUCKET")
-    if not bucket:
-        raise ValueError("Missing DATA_BUCKET environment variable")
+    base_path = f"{s3_prefix}/{order_id}"
+    image_key = f"{base_path}/user_image.jpg"
+    label_key = f"{base_path}/processed/labels/user_image.txt"
 
-    # File keys
-    image_key = f"{S3_PREFIX}/{order_id}/user_image.jpg"
-    label_key = f"{S3_PREFIX}/{order_id}/processed/labels/user_image.txt"
-
-    # Destination paths
     local_image = os.path.join(DEST_DIR, "user_image.jpg")
     local_label = os.path.join(DEST_DIR, "user_image.txt")
 
-    # Download both
     download_file(s3, bucket, image_key, local_image)
     download_file(s3, bucket, label_key, local_label)
 
 def main():
-    order_id = os.environ.get("ORDER_ID")
-    if not order_id:
-        raise ValueError("Missing ORDER_ID environment variable")
+    with StepFunctionReporter():
+        # Load environment variables
+        bucket = os.environ.get("DATA_BUCKET")
+        order_id = os.environ.get("ORDER_ID")
+        s3_prefix = os.environ.get("S3_PREFIX", "orders")
 
-    print(f"📦 Starting download for order: {order_id}")
-    download_order_files(order_id)
-    print("✅ Downloads complete. Running measurement script...")
+        if not bucket or not order_id:
+            raise ValueError("Missing required environment variables: DATA_BUCKET and/or ORDER_ID")
 
-    # Run the analysis script
-    command = [
-        "python3", "find_ferrule_measurements.py",
-        "--image", "user_image.jpg",
-        "--yolo", "user_image.txt",
-        "--write"
-    ]
-    try:
-        subprocess.run(command, check=True)
-        print("✅ Measurement script completed")
-    except subprocess.CalledProcessError as e:
-        print("❌ Measurement script failed")
-        raise e
+        base_path = f"{s3_prefix}/{order_id}"
 
-    # Check for expected outputs
-    outputs = ["processed.jpg", "masked.jpg", "measurements.json"]
-    missing = [f for f in outputs if not os.path.exists(f)]
+        print(f"📦 Starting download for order: {order_id}")
+        download_order_files(bucket, s3_prefix, order_id)
+        print("✅ Downloads complete. Running measurement script...")
 
-    if missing:
-        raise FileNotFoundError(f"Expected output file(s) not found: {', '.join(missing)}")
+        command = [
+            "python3", "find_ferrule_measurements.py",
+            "--image", "user_image.jpg",
+            "--yolo", "user_image.txt",
+            "--write"
+        ]
+        try:
+            subprocess.run(command, check=True)
+            print("✅ Measurement script completed")
+        except subprocess.CalledProcessError as e:
+            print("❌ Measurement script failed")
+            raise e
 
-    print("📤 Uploading processed results to S3...")
-    s3 = boto3.client("s3")
-    bucket = os.environ.get("DATA_BUCKET")
-    for filename in outputs:
-        s3_key = f"{S3_PREFIX}/{order_id}/processed/{filename}"
-        print(f"⬆️ Uploading {filename} to s3://{bucket}/{s3_key}")
-        with open(filename, 'rb') as f:
-            s3.upload_fileobj(f, bucket, s3_key)
+        outputs = ["processed.jpg", "masked.jpg", "measurements.json"]
+        missing = [f for f in outputs if not os.path.exists(f)]
 
-    print("✅ All done.")
+        if missing:
+            raise FileNotFoundError(f"Expected output file(s) not found: {', '.join(missing)}")
+
+        print("📤 Uploading processed results to S3...")
+        s3 = boto3.client("s3")
+        for filename in outputs:
+            s3_key = f"{base_path}/processed/{filename}"
+            print(f"⬆️ Uploading {filename} to s3://{bucket}/{s3_key}")
+            with open(filename, 'rb') as f:
+                s3.upload_fileobj(f, bucket, s3_key)
+
+        print("✅ All done.")
 
 if __name__ == "__main__":
     main()

@@ -585,10 +585,18 @@ def main(args):
         print(f"Bottom edge: {bot_px:.1f}px ≈ {bot_in:.3f}\"")
         print(f"Ferrule height: {ferrule.height_px:.1f}px ≈ {height_in:.3f}\"")
 
+        # Determine which is large and small
+        if top_in >= bot_in:
+            large_dia_val = (top_px, top_in)
+            small_dia_val = (bot_px, bot_in)
+        else:
+            large_dia_val = (bot_px, bot_in)
+            small_dia_val = (top_px, top_in)
+
         measurements = {
-            "top_edge": {"pixels": round(top_px, 1), "inches": round(top_in, 3)},
-            "bottom_edge": {"pixels": round(bot_px, 1), "inches": round(bot_in, 3)},
-            "ferrule_height": {"pixels": round(ferrule.height_px, 1), "inches": round(height_in, 3)}
+            "large_dia": {"pixels": round(large_dia_val[0], 1), "inches": round(large_dia_val[1], 3)},
+            "small_dia": {"pixels": round(small_dia_val[0], 1), "inches": round(small_dia_val[1], 3)},
+            "length": {"pixels": round(ferrule.height_px, 1), "inches": round(height_in, 3)}
         }
 
         canvas = draw_height_measurement(canvas, ferrule.height_lines, ferrule.height_px, label_override=f"{height_in:.3f}\"")
