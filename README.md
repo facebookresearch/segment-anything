@@ -155,6 +155,13 @@ mask = mask_utils.decode(annotation["segmentation"])
 
 See [here](https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocotools/mask.py) for more instructions to manipulate masks stored in RLE format.
 
+
+## Streamlit demo
+A minimalistic streamlit webapp using the Segment Anything Model(SAM) can be found [here.](https://github.com/prateekralhan/Segment-Anything-Streamlit/tree/main)
+
+![Animation](https://user-images.githubusercontent.com/29462447/230744183-b07af944-dc28-4da8-8d37-f6a81ea13800.gif)
+
+
 ## License
 
 The model is licensed under the [Apache 2.0 license](LICENSE).
