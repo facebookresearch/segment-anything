@@ -35,10 +35,12 @@ RUN pip3 install \
 
 COPY segment_anything segment_anything
 COPY find_ferrule_measurements.py find_ferrule_measurements.py
+COPY find_ferrule_measurements_v2.py find_ferrule_measurements_v2.py
 COPY find_ferrule_mask.py find_ferrule_mask.py
 COPY main.py main.py
+COPY main_v2.py main_v2.py
 COPY masks.py masks.py
 COPY local.sh local.sh
 COPY entrypoint.sh entrypoint.sh
 
-CMD ["/usr/bin/python3", "masks.py"]
+CMD ["/usr/bin/python3", "main_v2.py"]

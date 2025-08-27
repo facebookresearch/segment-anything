@@ -1,59 +1,89 @@
-# Find the ferrule, and draw only the ferrule on a white background
 import torch
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from segment_anything import sam_model_registry, SamPredictor
+import argparse
 
-# Load image
-image_path = "grubber_ferrule.jpg"  # Path to your input image
+
+# --- Load Image ---
+image_path = "../test_data/grubber_ferrule.jpg"
 image = cv2.imread(image_path)
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Load SAM model
+# --- Preprocess Image: Grayscale + Contrast Increase ---
+gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+contrast_enhanced = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)  # 50% contrast boost
+preprocessed_image = cv2.cvtColor(contrast_enhanced, cv2.COLOR_GRAY2RGB)
+
+# --- Load SAM Model ---
 sam_checkpoint = "sam_vit_h_4b8939.pth"
 model_type = "vit_h"
-
 sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-predictor = SamPredictor(sam)
 
-# Set the image
-predictor.set_image(image)
+# --- Bounding Box (YOLO format: [xc, yc, w, h]) ---
+yolo_box = [0.305886, 0.578497, 0.102513, 0.0751488]
 
-# Your YOLO-format bounding box [x_center, y_center, width, height] (all relative)
-#yolo_box = [0.556217, 0.528522, 0.263889, 0.199901]
-yolo_box = [0.305886, 0.578497, 0.102513, 0.0751488] # Ferrule
-#yolo_box = [0.612269, 0.582713, 0.270833, 0.221974] # Ball
+def run_sam(predictor, img, yolo_box):
+    predictor.set_image(img)
+    h, w, _ = img.shape
+    xc, yc, w_rel, h_rel = yolo_box
+    w_abs = w_rel * w
+    h_abs = h_rel * h
+    x0 = int(xc * w - w_abs / 2)
+    y0 = int(yc * h - h_abs / 2)
+    x1 = int(x0 + w_abs)
+    y1 = int(y0 + h_abs)
+    box = np.array([x0, y0, x1, y1])
+    masks, scores, _ = predictor.predict(box=box, multimask_output=True)
+    return masks[np.argmax(scores)]
 
-# Convert YOLO box to absolute pixel coordinates (x0, y0, x1, y1)
-img_h, img_w, _ = image.shape
-x_center, y_center, w_rel, h_rel = yolo_box
+def get_extreme_points(mask):
+    mask_uint8 = (mask * 255).astype(np.uint8)
+    contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return []
+    contour = max(contours, key=cv2.contourArea).squeeze()
+    if contour.ndim != 2:  # edge case: only one point
+        return []
+    sum_pts = contour[:, 0] + contour[:, 1]
+    diff_pts = contour[:, 0] - contour[:, 1]
+    left_top = contour[np.argmin(sum_pts)]
+    right_bottom = contour[np.argmax(sum_pts)]
+    left_bottom = contour[np.argmin(diff_pts)]
+    right_top = contour[np.argmax(diff_pts)]
+    return [tuple(left_top), tuple(right_top), tuple(left_bottom), tuple(right_bottom)]
 
-w = w_rel * img_w
-h = h_rel * img_h
-x0 = int((x_center * img_w) - w / 2)
-y0 = int((y_center * img_h) - h / 2)
-x1 = int(x0 + w)
-y1 = int(y0 + h)
+def draw_points(image, points, color=(255, 0, 0), radius=8):
+    img_copy = image.copy()
+    for pt in points:
+        cv2.circle(img_copy, pt, radius, color, -1)
+    return img_copy
 
-box = np.array([x0, y0, x1, y1])
+# --- Run SAM on Original ---
+predictor_original = SamPredictor(sam)
+mask_original = run_sam(predictor_original, image, yolo_box)
+points_original = get_extreme_points(mask_original)
+image_original_with_dots = draw_points(image, points_original)
 
-# Predict segmentation mask
-masks, scores, logits = predictor.predict(box=box, multimask_output=True)
+# --- Run SAM on Preprocessed ---
+predictor_pre = SamPredictor(sam)
+mask_preprocessed = run_sam(predictor_pre, preprocessed_image, yolo_box)
+points_pre = get_extreme_points(mask_preprocessed)
+image_preprocessed_with_dots = draw_points(preprocessed_image, points_pre)
 
-# Select the best mask (highest score)
-best_mask = masks[np.argmax(scores)]
+# --- Plot Results Side-by-Side ---
+fig, axs = plt.subplots(1, 2, figsize=(16, 10))
 
-# Create white background
-masked_image = np.ones_like(image) * 255
+axs[0].imshow(image_original_with_dots)
+axs[0].imshow(mask_original, alpha=0.2, cmap='jet')
+axs[0].set_title("Original Image with Mask + Dots")
+axs[0].axis('off')
 
-# Overlay the segmented object onto the white background
-for c in range(3):  # For each channel
-    masked_image[:, :, c] = np.where(best_mask, image[:, :, c], masked_image[:, :, c])
+axs[1].imshow(image_preprocessed_with_dots)
+axs[1].imshow(mask_preprocessed, alpha=0.2, cmap='jet')
+axs[1].set_title("Preprocessed Image with Mask + Dots")
+axs[1].axis('off')
 
-# Show result
-#plt.figure(figsize=(10, 10))
-plt.imshow(masked_image)
-plt.title("Isolated Segmented Object")
-plt.axis('off')
+plt.tight_layout()
 plt.show()
