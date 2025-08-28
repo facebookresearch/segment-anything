@@ -52,7 +52,7 @@ def main():
         raise e
 
     # List of expected output files
-    expected_files = ["mask.png", "frustum.jpg", "processed.jpg"]
+    expected_files = ["mask.png", "frustum.jpg", "processed.jpg", "frustum_measured.jpg"]
 
     # Upload files to S3
     s3 = boto3.client("s3")

@@ -119,7 +119,7 @@ class FerruleDimensions:
         self.points = self.extract_black_points(filled_mask)
 
         print("→ Fitting frustum")
-        self.result = self.fit_frustum(self.points, self.image.shape)
+        self.result = self.fit_frustum(self.points, self.image.shape, self.yolo_box_rel)
 
     def _run_sam(self):
         h, w, _ = self.image.shape
@@ -274,38 +274,37 @@ class FerruleDimensions:
         return loss
 
 
-    def fit_frustum(self, points, img_shape, restarts=4, jitter=0.10):
-        # Revert to simple percentile-based initializer and single Powell call
+    def fit_frustum(self, points, img_shape, ferrule_box, restarts=4, jitter=0.10):
         h, w = img_shape[:2]
 
-        # Compute central region of point cloud
-        x_min, x_max = np.percentile(points[:, 0], [5, 95])
-        y_min, y_max = np.percentile(points[:, 1], [5, 95])
-        x_center = np.mean([x_min, x_max])
-        y_center = np.mean([y_min, y_max])
+        # === Convert normalized YOLO box to pixel space ===
+        fx_c, fy_c, fw, fh = ferrule_box
+        fx_c *= w
+        fy_c *= h
+        fw *= w
+        fh *= h
 
-        # Compute reasonable widths and height
-        w_top0 = (x_max - x_min) * 0.5
-        w_bottom0 = (x_max - x_min) * 0.9  # more generous base
-        h0 = y_max - y_min
+        # === Initial guess based on box ===
+        center_x0 = fx_c
+        center_y0 = fy_c
+        w_top0 = fw * 0.5       # tighter top
+        w_bottom0 = fw          # base assumed larger
+        h0 = fh
         theta0 = 0.0
 
-        # Initial guess
-        init = [x_center, y_center, w_top0, h0, w_bottom0, theta0]
+        init = [center_x0, center_y0, w_top0, h0, w_bottom0, theta0]
 
-        # Allow 20% breathing room in bounds
-        x_pad = (x_max - x_min) * 0.2
-        y_pad = (y_max - y_min) * 0.2
-        w = img_shape[1]
-        h = img_shape[0]
+        # === Bounds focused around box with 20% breathing room ===
+        x_pad = fw * 0.2
+        y_pad = fh * 0.2
 
         bounds = [
-            (max(0, x_min - x_pad), min(w - 1, x_max + x_pad)),  # center_x
-            (max(0, y_min - y_pad), min(h - 1, y_max + y_pad)),  # center_y
-            (1, w),   # w_top
-            (1, h),   # height
-            (1, w),   # w_bottom
-            (-np.pi, np.pi)  # theta
+            (max(0, fx_c - x_pad), min(w - 1, fx_c + x_pad)),  # center_x
+            (max(0, fy_c - y_pad), min(h - 1, fy_c + y_pad)),  # center_y
+            (1, fw),                                            # top width
+            (1, fh * 2),                                        # height
+            (1, fw * 2),                                        # bottom width
+            (-np.pi, np.pi)                                    # angle
         ]
 
         # one run with per-iteration loss and params capture
@@ -528,7 +527,102 @@ class FerruleDimensions:
         plt.tight_layout()
         plt.show()
 
-    def plot_frustum_with_measurements(self, img, result, points):
+    def plot_frustum_with_measurements(self, result, points):
+        """
+        Draw the frustum fit and measurements using OpenCV and return as BGR image.
+        """
+
+        def order_corners_by_orientation(corners):
+            """
+            Orders 4 points (N=4x2) in the order:
+            top-left, top-right, bottom-right, bottom-left
+            using angle relative to centroid.
+            """
+            center = np.mean(corners, axis=0)
+            angles = np.arctan2(corners[:, 1] - center[1], corners[:, 0] - center[0])
+            sort_order = np.argsort(angles)
+            return corners[sort_order]
+
+        img_out = self.image.copy()
+        m = result['measurements']
+        corners = result['corners'].astype(int)
+        corners_ordered = order_corners_by_orientation(corners)
+        tl, tr, br, bl = corners_ordered
+
+        # === Draw black points as semi-transparent green dots ===
+        alpha = 0.2
+        dot_radius = 1
+        green = (0, 255, 0)
+
+        overlay = img_out.copy()
+        for x, y in points.astype(int):
+            if 0 <= y < overlay.shape[0] and 0 <= x < overlay.shape[1]:
+                cv2.circle(overlay, (x, y), dot_radius, green, thickness=-1)
+        img_out = cv2.addWeighted(overlay, alpha, img_out, 1 - alpha, 0)
+
+        # === Draw frustum outline in red ===
+        for i in range(4):
+            pt1 = tuple(corners_ordered[i])
+            pt2 = tuple(corners_ordered[(i + 1) % 4])
+            cv2.line(img_out, pt1, pt2, (0, 0, 255), thickness=2)
+
+        # === Measurement annotations ===
+        top_center = ((tl + tr) / 2).astype(int)
+        bottom_center = ((bl + br) / 2).astype(int)
+        length_mid = ((top_center + bottom_center) / 2).astype(int)
+
+        # Top width line
+        cv2.arrowedLine(img_out, tuple(tl), tuple(tr), (255, 0, 0), 1, tipLength=0.02)
+        cv2.arrowedLine(img_out, tuple(tr), tuple(tl), (255, 0, 0), 1, tipLength=0.02)
+        cv2.putText(img_out, f"Top: {m['top_width_px']:.1f}px",
+                    tuple(top_center - np.array([0, 10])), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (255, 0, 0), 2, lineType=cv2.LINE_AA)
+
+        # Bottom width line
+        cv2.arrowedLine(img_out, tuple(bl), tuple(br), (0, 128, 0), 1, tipLength=0.02)
+        cv2.arrowedLine(img_out, tuple(br), tuple(bl), (0, 128, 0), 1, tipLength=0.02)
+        cv2.putText(img_out, f"Bottom: {m['bottom_width_px']:.1f}px",
+                    tuple(bottom_center + np.array([0, 25])), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (0, 128, 0), 2, lineType=cv2.LINE_AA)
+
+        # Length line (center axis)
+        cv2.arrowedLine(img_out, tuple(top_center), tuple(bottom_center), (255, 0, 255), 1, tipLength=0.02)
+        cv2.arrowedLine(img_out, tuple(bottom_center), tuple(top_center), (255, 0, 255), 1, tipLength=0.02)
+        cv2.putText(img_out, f"Length: {m['length_px']:.1f}px",
+                    (length_mid[0] + 15, length_mid[1]), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (255, 0, 255), 2, lineType=cv2.LINE_AA)
+
+        # === Summary box ===
+        summary_lines = [
+            f"Large Diameter: {m['large_diameter_px']:.1f}px",
+            f"Small Diameter: {m['small_diameter_px']:.1f}px",
+            f"Length: {m['length_px']:.1f}px",
+            f"Taper Ratio: {m['taper_ratio']:.3f}"
+        ]
+        if m["is_inverted"]:
+            summary_lines.append("⚠️ Inverted cone")
+
+        base_x, base_y = 20, 40
+        for i, line in enumerate(summary_lines):
+            y = base_y + i * 25
+            cv2.putText(img_out, line, (base_x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6, (0, 0, 0), 2, lineType=cv2.LINE_AA)
+
+        # === Final label ===
+        cv2.putText(
+            img_out,
+            "Best Fit Frustum",
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1.0,
+            (0, 0, 0),
+            2,
+            lineType=cv2.LINE_AA,
+        )
+
+        return img_out
+
+    def plot_frustum_with_measurements2(self, img, result, points):
         """Plot the final frustum fit with measurement annotations"""
         params = result['params']
         corners = result['corners']
@@ -722,6 +816,12 @@ def main(args):
     cv2.imwrite("frustum.jpg", frustum_img)
     print("🖼️  Saved frustum overlay to frustum.png")
 
+    print("plot frustum with measurements")
+    frustum_measured_img = ferrule.plot_frustum_with_measurements(ferrule.result, ferrule.points)
+    cv2.imwrite("frustum_measured.jpg", frustum_measured_img)
+    print("🖼️  Saved frustum overlay to frustum.png")
+
+
     print("Generating final measured image...")
     measured_img = create_measured_image(ball, ferrule)
     cv2.imwrite("processed.jpg", measured_img)
@@ -731,11 +831,7 @@ def main(args):
     print(f"Ferrule taper ratio: {measurements['taper_ratio']:.3f}")
     print(f"Measurements {measurements}")
 
-    #print("Plotting...")
-    #ferrule.plot_frustum_with_measurements(ferrule.image, ferrule.result, ferrule.points)
-
     print("✅ Done.")
-
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
