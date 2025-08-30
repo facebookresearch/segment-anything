@@ -3,6 +3,8 @@ from scipy.optimize import minimize
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import json
+
 from segment_anything import sam_model_registry, SamPredictor
 
 # ---- Loss configuration (reverted to count) ----
@@ -190,33 +192,6 @@ class FerruleDimensions:
             "is_inverted": bottom_width_px < top_width_px,
         }, np.array([tl, tr, br, bl])  # ensure corners follow this order
 
-    def extract_black_points2(self, image_path, visualize=False):
-        # Read image and convert to grayscale
-        img = cv2.imread(image_path)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        # Invert threshold to extract black areas
-        _, mask = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)
-
-        # Extract coordinates of black pixels
-        ys, xs = np.where(mask > 0)
-        points = np.column_stack((xs, ys))
-
-        # Optional visualization
-        if visualize:
-            # Create a white canvas
-            canvas = np.full_like(gray, 255)
-            for x, y in points:
-                canvas[y, x] = 0  # draw black point
-
-            # Optionally save or display the canvas
-            #cv2.imwrite("black_points_visualized.png", canvas)
-            cv2.imshow("Points", canvas)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-        print(f"img.shape {img.shape}")
-        return img, points
 
     def extract_black_points(self, binary_mask, visualize=False):
         if len(binary_mask.shape) == 3:
@@ -236,6 +211,7 @@ class FerruleDimensions:
             cv2.destroyAllWindows()
 
         return points
+
 
     def trapezoid_corners(self, params):
         # center_x, center_y, w_top, h, w_bottom, theta
@@ -370,14 +346,21 @@ class FerruleDimensions:
         bottom_center = (bl + br) / 2
         length = np.linalg.norm(bottom_center - top_center)
 
-        measurements, sorted_corners = self.calculate_measurements(best_res.x)
-
+        # Create result dictionary with measurements
         result = {
             'params': best_res.x,
             'loss_history': best_hist,
             'params_history': best_params_hist,
-            'corners': sorted_corners,
-            'measurements': measurements
+            'corners': corners,
+            'measurements': {
+                'large_diameter_px': large_diameter,
+                'small_diameter_px': small_diameter,
+                'top_width_px': top_width,
+                'bottom_width_px': bottom_width,
+                'length_px': length,
+                'taper_ratio': small_diameter / large_diameter if large_diameter > 0 else 0,
+                'is_inverted': top_width > bottom_width  # True if cone is upside down
+            }
         }
 
         return result
@@ -428,67 +411,6 @@ class FerruleDimensions:
         return img_out
 
 
-    def plot_frustum2(self, params, points):
-        """
-        Draws the frustum, points, and mask on a copy of the original image using OpenCV.
-        Returns the image as a NumPy BGR array.
-        """
-        img_out = self.image.copy()
-
-        # === Overlay green mask (if available) ===
-        if hasattr(self, "mask") and self.mask is not None:
-            if self.mask.ndim == 3:
-                mask_binary = self.mask[:, :, 0].astype(bool)
-            else:
-                mask_binary = self.mask.astype(bool)
-
-            green_overlay = np.zeros_like(img_out, dtype=np.uint8)
-            green_overlay[:, :] = (0, 255, 0)  # BGR green
-
-            alpha = 0.2
-            img_out[mask_binary] = (
-                    (1 - alpha) * img_out[mask_binary] + alpha * green_overlay[mask_binary]
-            ).astype(np.uint8)
-
-        # === Draw black points as semi-transparent green dots ===
-        alpha = 0.2
-        dot_radius = 1
-        green = (0, 255, 0)  # BGR tuple
-
-        for x, y in points.astype(int):
-            if (
-                    0 <= y - dot_radius < img_out.shape[0]
-                    and 0 <= x - dot_radius < img_out.shape[1]
-                    and y + dot_radius < img_out.shape[0]
-                    and x + dot_radius < img_out.shape[1]
-            ):
-                # Draw a tiny filled circle on a separate mask
-                overlay = img_out.copy()
-                cv2.circle(overlay, (x, y), dot_radius, color=tuple(green), thickness=-1)
-                # Blend just that region
-                img_out = cv2.addWeighted(overlay, alpha, img_out, 1 - alpha, 0)
-
-        # === Draw frustum trapezoid in red ===
-        corners = self.trapezoid_corners(params).astype(int)
-        for i in range(4):
-            pt1 = tuple(corners[i])
-            pt2 = tuple(corners[(i + 1) % 4])
-            cv2.line(img_out, pt1, pt2, color=(0, 0, 255), thickness=1)  # red
-
-        # === Add label ===
-        cv2.putText(
-            img_out,
-            "Best Fit Frustum",
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.0,
-            (0, 0, 0),
-            2,
-            lineType=cv2.LINE_AA,
-        )
-
-        return img_out
-
     def plot_frustum_with_loss(self, img, params, points, loss_history, params_history=None):
         corners = self.trapezoid_corners(params)
         fig, axes = plt.subplots(1, 2, figsize=(12, 6))
@@ -527,27 +449,16 @@ class FerruleDimensions:
         plt.tight_layout()
         plt.show()
 
-    def plot_frustum_with_measurements(self, result, points):
-        """
-        Draw the frustum fit and measurements using OpenCV and return as BGR image.
-        """
-
-        def order_corners_by_orientation(corners):
-            """
-            Orders 4 points (N=4x2) in the order:
-            top-left, top-right, bottom-right, bottom-left
-            using angle relative to centroid.
-            """
-            center = np.mean(corners, axis=0)
-            angles = np.arctan2(corners[:, 1] - center[1], corners[:, 0] - center[0])
-            sort_order = np.argsort(angles)
-            return corners[sort_order]
-
+    def plot_frustum_with_measurements(self, result, points, ball: BallDimensions):
         img_out = self.image.copy()
-        m = result['measurements']
-        corners = result['corners'].astype(int)
-        corners_ordered = order_corners_by_orientation(corners)
-        tl, tr, br, bl = corners_ordered
+        h, w = img_out.shape[:2]
+
+        # Use pixel-only measurements for geometry, but enrich with inches
+        corners = result['corners']
+        px = result['measurements']
+        full = self.get_measurements_with_units(ball)  # ← Get enriched measurements
+
+        tl, tr, br, bl = [tuple(map(int, pt)) for pt in corners]
 
         # === Draw black points as semi-transparent green dots ===
         alpha = 0.2
@@ -556,135 +467,130 @@ class FerruleDimensions:
 
         overlay = img_out.copy()
         for x, y in points.astype(int):
-            if 0 <= y < overlay.shape[0] and 0 <= x < overlay.shape[1]:
+            if 0 <= x < w and 0 <= y < h:
                 cv2.circle(overlay, (x, y), dot_radius, green, thickness=-1)
         img_out = cv2.addWeighted(overlay, alpha, img_out, 1 - alpha, 0)
 
-        # === Draw frustum outline in red ===
-        for i in range(4):
-            pt1 = tuple(corners_ordered[i])
-            pt2 = tuple(corners_ordered[(i + 1) % 4])
-            cv2.line(img_out, pt1, pt2, (0, 0, 255), thickness=2)
+        # === Draw frustum edges (red lines) ===
+        frustum_color = (0, 0, 255)  # Red
+        cv2.line(img_out, tl, tr, frustum_color, 2)
+        cv2.line(img_out, tr, br, frustum_color, 2)
+        cv2.line(img_out, br, bl, frustum_color, 2)
+        cv2.line(img_out, bl, tl, frustum_color, 2)
 
-        # === Measurement annotations ===
-        top_center = ((tl + tr) / 2).astype(int)
-        bottom_center = ((bl + br) / 2).astype(int)
-        length_mid = ((top_center + bottom_center) / 2).astype(int)
-
-        # Top width line
-        cv2.arrowedLine(img_out, tuple(tl), tuple(tr), (255, 0, 0), 1, tipLength=0.02)
-        cv2.arrowedLine(img_out, tuple(tr), tuple(tl), (255, 0, 0), 1, tipLength=0.02)
-        cv2.putText(img_out, f"Top: {m['top_width_px']:.1f}px",
-                    tuple(top_center - np.array([0, 10])), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (255, 0, 0), 2, lineType=cv2.LINE_AA)
-
-        # Bottom width line
-        cv2.arrowedLine(img_out, tuple(bl), tuple(br), (0, 128, 0), 1, tipLength=0.02)
-        cv2.arrowedLine(img_out, tuple(br), tuple(bl), (0, 128, 0), 1, tipLength=0.02)
-        cv2.putText(img_out, f"Bottom: {m['bottom_width_px']:.1f}px",
-                    tuple(bottom_center + np.array([0, 25])), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (0, 128, 0), 2, lineType=cv2.LINE_AA)
-
-        # Length line (center axis)
-        cv2.arrowedLine(img_out, tuple(top_center), tuple(bottom_center), (255, 0, 255), 1, tipLength=0.02)
-        cv2.arrowedLine(img_out, tuple(bottom_center), tuple(top_center), (255, 0, 255), 1, tipLength=0.02)
-        cv2.putText(img_out, f"Length: {m['length_px']:.1f}px",
-                    (length_mid[0] + 15, length_mid[1]), cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6, (255, 0, 255), 2, lineType=cv2.LINE_AA)
-
-        # === Summary box ===
-        summary_lines = [
-            f"Large Diameter: {m['large_diameter_px']:.1f}px",
-            f"Small Diameter: {m['small_diameter_px']:.1f}px",
-            f"Length: {m['length_px']:.1f}px",
-            f"Taper Ratio: {m['taper_ratio']:.3f}"
-        ]
-        if m["is_inverted"]:
-            summary_lines.append("⚠️ Inverted cone")
-
-        base_x, base_y = 20, 40
-        for i, line in enumerate(summary_lines):
-            y = base_y + i * 25
-            cv2.putText(img_out, line, (base_x, y), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.6, (0, 0, 0), 2, lineType=cv2.LINE_AA)
-
-        # === Final label ===
+        # === Top width line + label ===
+        top_center = ((tl[0] + tr[0]) // 2, (tl[1] + tr[1]) // 2)
+        cv2.line(img_out, tl, tr, (255, 0, 0), 1)
         cv2.putText(
             img_out,
-            "Best Fit Frustum",
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1.0,
-            (0, 0, 0),
-            2,
-            lineType=cv2.LINE_AA,
+            f"Top: {px['top_width_px']:.1f}px",
+            (top_center[0] - 40, top_center[1] - 10),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA
         )
+
+        # === Bottom width line + label ===
+        bottom_center = ((bl[0] + br[0]) // 2, (bl[1] + br[1]) // 2)
+        cv2.line(img_out, bl, br, (0, 255, 0), 1)
+        cv2.putText(
+            img_out,
+            f"Bottom: {px['bottom_width_px']:.1f}px",
+            (bottom_center[0] - 40, bottom_center[1] + 20),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 150, 0), 1, cv2.LINE_AA
+        )
+
+        # === Length line + label ===
+        top_c = np.array([(tl[0] + tr[0]) / 2, (tl[1] + tr[1]) / 2])
+        bottom_c = np.array([(bl[0] + br[0]) / 2, (bl[1] + br[1]) / 2])
+        top_c_int = tuple(map(int, top_c))
+        bottom_c_int = tuple(map(int, bottom_c))
+        length_mid = ((top_c[0] + bottom_c[0]) / 2, (top_c[1] + bottom_c[1]) / 2)
+        length_mid_int = tuple(map(int, length_mid))
+
+        cv2.line(img_out, top_c_int, bottom_c_int, (255, 0, 255), 1)
+        cv2.putText(
+            img_out,
+            f"Length: {px['length_px']:.1f}px",
+            (length_mid_int[0] + 10, length_mid_int[1]),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 1, cv2.LINE_AA
+        )
+
+        # === Ball outline (orange) ===
+        if ball.center_px and ball.radius_px:
+            center = tuple(map(int, ball.center_px))
+            radius = int(ball.radius_px)
+            cv2.circle(img_out, center, radius, color=(0, 140, 255), thickness=2)
+            cv2.putText(img_out, f"Ball: {2 * radius:.1f}px", (center[0], center[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 140, 255), 2, lineType=cv2.LINE_AA)
+
+        # === Summary Box (top-left) with inches ===
+        summary_lines = [
+            f"Large Dia:  {full['large_dia']['pixels']:.1f}px / {full['large_dia']['inches']:.3f}in",
+            f"Small Dia:  {full['small_dia']['pixels']:.1f}px / {full['small_dia']['inches']:.3f}in",
+            f"Length:     {full['length']['pixels']:.1f}px / {full['length']['inches']:.3f}in",
+            f"Taper Ratio: {full['taper_ratio']:.3f}",
+        ]
+        if full["is_inverted"]:
+            summary_lines.append("⚠️ Inverted cone")
+
+        # Draw background
+        box_x, box_y = 10, 10
+        line_height = 18
+        box_w = 320
+        box_h = line_height * len(summary_lines) + 10
+        cv2.rectangle(img_out, (box_x, box_y), (box_x + box_w, box_y + box_h), (255, 255, 220), thickness=-1)
+
+        # Draw text lines
+        for i, line in enumerate(summary_lines):
+            cv2.putText(
+                img_out,
+                line,
+                (box_x + 5, box_y + 20 + i * line_height),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 0),
+                1,
+                cv2.LINE_AA
+            )
 
         return img_out
 
-    def plot_frustum_with_measurements2(self, img, result, points):
-        """Plot the final frustum fit with measurement annotations"""
-        params = result['params']
-        corners = result['corners']
-        measurements = result['measurements']
 
-        plt.figure(figsize=(10, 8))
-        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        plt.scatter(points[:,0], points[:,1], c='k', s=2, alpha=0.5, label='Black Points')
+    def get_measurements_with_units(self, ball: BallDimensions):
+        """
+        Convert frustum measurements from pixels to inches using reference ball size.
 
-        # Draw the fitted trapezoid
-        trap_x = np.append(corners[:, 0], corners[0, 0])
-        trap_y = np.append(corners[:, 1], corners[0, 1])
-        plt.plot(trap_x, trap_y, 'r-', linewidth=3, label='Fitted Frustum')
+        Args:
+            ball (BallDimensions): A processed BallDimensions object with pixel/inch scaling.
 
-        # Extract corner coordinates for annotations
-        tl, tr, br, bl = corners
+        Returns:
+            dict: Measurement dictionary with pixels and inches.
+        """
+        if not ball.radius_px or not ball.radius_in:
+            raise ValueError("Ball must be processed before extracting measurements.")
 
-        # Draw measurement lines and annotations
-        top_center = (tl + tr) / 2
-        bottom_center = (bl + br) / 2
+        # Compute inches per pixel from ball diameter
+        ball_diameter_px = 2 * ball.radius_px
+        inch_per_pixel = ball.real_world_diameter_in / ball_diameter_px
 
-        # Top width line
-        plt.plot([tl[0], tr[0]], [tl[1], tr[1]], 'b-', linewidth=2, alpha=0.7)
-        plt.text(top_center[0], top_center[1] - 15, f'Top: {measurements["top_width_px"]:.1f}px',
-                 ha='center', va='bottom', color='blue', fontsize=10, fontweight='bold',
-                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
+        # Pull measurements from internal fit result
+        m = self.result['measurements']
 
-        # Bottom width line
-        plt.plot([bl[0], br[0]], [bl[1], br[1]], 'g-', linewidth=2, alpha=0.7)
-        plt.text(bottom_center[0], bottom_center[1] + 15, f'Bottom: {measurements["bottom_width_px"]:.1f}px',
-                 ha='center', va='top', color='green', fontsize=10, fontweight='bold',
-                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
-
-        # Length line (center axis)
-        plt.plot([top_center[0], bottom_center[0]], [top_center[1], top_center[1]],
-                 'm--', linewidth=2, alpha=0.7)
-        length_mid = (top_center + bottom_center) / 2
-        plt.text(length_mid[0] + 20, length_mid[1], f'Length: {measurements["length_px"]:.1f}px',
-                 ha='left', va='center', color='magenta', fontsize=10, fontweight='bold',
-                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8))
-
-        # Summary text box
-        summary_text = f"""Measurements Summary:
-            Large Diameter: {measurements['large_diameter_px']:.1f}px
-            Small Diameter: {measurements['small_diameter_px']:.1f}px
-            Length: {measurements['length_px']:.1f}px
-            Taper Ratio: {measurements['taper_ratio']:.3f}"""
-
-        if measurements['is_inverted']:
-            summary_text += "\n⚠️ Inverted cone detected"
-
-        plt.text(0.02, 0.98, summary_text, transform=plt.gca().transAxes,
-                 verticalalignment='top', fontsize=9, fontfamily='monospace',
-                 bbox=dict(boxstyle='round,pad=0.5', facecolor='lightyellow', alpha=0.9))
-
-        plt.legend(loc='upper right')
-        plt.title('Frustum Fit with Pixel Measurements', fontsize=14, fontweight='bold')
-        plt.xlim(0, img.shape[1])
-        plt.ylim(img.shape[0], 0)
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.tight_layout()
-        plt.show()
+        return {
+            "large_dia": {
+                "pixels": round(m['large_diameter_px'], 1),
+                "inches": round(m['large_diameter_px'] * inch_per_pixel, 3)
+            },
+            "small_dia": {
+                "pixels": round(m['small_diameter_px'], 1),
+                "inches": round(m['small_diameter_px'] * inch_per_pixel, 3)
+            },
+            "length": {
+                "pixels": round(m['length_px'], 1),
+                "inches": round(m['length_px'] * inch_per_pixel, 3)
+            },
+            "taper_ratio": round(m['taper_ratio'], 4),
+            "is_inverted": bool(m['is_inverted'])
+        }
 
 def create_measured_image(ball: BallDimensions, ferrule: FerruleDimensions):
     """
@@ -817,17 +723,17 @@ def main(args):
     print("🖼️  Saved frustum overlay to frustum.png")
 
     print("plot frustum with measurements")
-    frustum_measured_img = ferrule.plot_frustum_with_measurements(ferrule.result, ferrule.points)
-    cv2.imwrite("frustum_measured.jpg", frustum_measured_img)
-    print("🖼️  Saved frustum overlay to frustum.png")
+    frustum_measured_img = ferrule.plot_frustum_with_measurements(ferrule.result, ferrule.points, ball)
+    cv2.imwrite("processed.jpg", frustum_measured_img)
+    print("🖼️  Saved frustum with measurements processed.jpg")
 
 
-    print("Generating final measured image...")
-    measured_img = create_measured_image(ball, ferrule)
-    cv2.imwrite("processed.jpg", measured_img)
-    print("🖼️  Saved annotated measurement image to processed.jpg")
+    measurements = ferrule.get_measurements_with_units(ball)
 
-    measurements = ferrule.result['measurements']
+    with open("measurements.json", "w") as f:
+        json.dump(measurements, f, indent=2)
+        print("✔️ Saved 'measurements.json'")
+
     print(f"Ferrule taper ratio: {measurements['taper_ratio']:.3f}")
     print(f"Measurements {measurements}")
 

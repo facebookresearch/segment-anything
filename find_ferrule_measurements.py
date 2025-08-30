@@ -2,7 +2,8 @@ import argparse
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
+import json
+
 from segment_anything import sam_model_registry, SamPredictor
 
 # ────────────────────────────────────────────────────────────────
@@ -530,9 +531,6 @@ def load_yolo_annotations(fp):
 # ────────────────────────────────────────────────────────────────
 
 def main(args):
-    import json
-    import os
-
     print("Loading image")
     image_bgr = cv2.imread(args.image)
     if image_bgr is None:

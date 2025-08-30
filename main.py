@@ -3,6 +3,7 @@ import boto3
 import subprocess
 import traceback
 import json
+import sys
 
 DEST_DIR = os.getcwd()
 
@@ -87,7 +88,7 @@ def main():
             "--write"
         ]
         try:
-            subprocess.run(command, check=True)
+            subprocess.run(command, check=True, stdout=sys.stdout, stderr=sys.stderr)
             print("✅ Measurement script completed")
         except subprocess.CalledProcessError as e:
             print("❌ Measurement script failed")
@@ -102,7 +103,7 @@ def main():
         print("📤 Uploading processed results to S3...")
         s3 = boto3.client("s3")
         for filename in outputs:
-            s3_key = f"{base_path}/processed/{filename}"
+            s3_key = f"{base_path}/processed/v1/{filename}"
             print(f"⬆️ Uploading {filename} to s3://{bucket}/{s3_key}")
             with open(filename, 'rb') as f:
                 s3.upload_fileobj(f, bucket, s3_key)

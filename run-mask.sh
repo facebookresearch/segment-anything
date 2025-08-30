@@ -14,7 +14,7 @@ fi
 echo "🏃 Starting container in background..."
 docker run \
   --name "$CONTAINER_NAME" \
-  -e ORDER_ID="Nickey_02" \
+  -e ORDER_ID="1640" \
   -e DATA_BUCKET="dev-golfstripes-ferrule-data" \
   -e AWS_PROFILE="golfstripes" \
   -v ~/.aws:/root/.aws \
