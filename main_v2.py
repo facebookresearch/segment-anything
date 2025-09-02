@@ -1,6 +1,8 @@
 import os
 import boto3
 import subprocess
+import traceback
+import json
 import sys
 
 DEST_DIR = os.getcwd()
