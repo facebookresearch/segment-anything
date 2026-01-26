@@ -19,14 +19,7 @@ def parse_args():
     parser.add_argument("--images-dir", type=str, default="images")
     parser.add_argument("--output-dir", type=str, default="outputs")
     parser.add_argument("--device", type=str, default="cuda")
-
-    # 🔹 NEW
-    parser.add_argument(
-        "--event-id",
-        type=str,
-        default=None,
-        help="Run inference for only this event (e.g. event1)"
-    )
+    parser.add_argument("--event-id", type=str, default=None, help="Run inference for only this event (e.g. event1)")
     return parser.parse_args()
 
 
@@ -50,7 +43,7 @@ def main():
     with open(annotation_path, "r") as f:
         annotations = json.load(f)
 
-    # 🔹 Filter events
+    # Filter events
     if args.event_id:
         if args.event_id not in annotations:
             raise ValueError(f"Event '{args.event_id}' not found in annotation")
@@ -93,8 +86,6 @@ def main():
                 cv2.imwrite(out_path, mask)
 
                 print(f"  Saved → {out_path}")
-
-    print("\nDone ✅")
 
 
 if __name__ == "__main__":
