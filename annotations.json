@@ -1,0 +1,87 @@
+{
+    "event1": {
+        "event_name": "The left person reaches down and grabs the ball",
+        "analysis": "The frames are numbered 28 to 34. Frame 6 shows the left person reaching down with hands near the table, indicating the grabbing action. Earlier frames (28-31) show only the table, while frames 32-33 show people but no grabbing action. Therefore, the event occurs in frame 34. Only objects visible in this frame are included.",
+        "frames":{
+            "frame_number": 34,
+            "objects": {
+                "left_person": {
+                    "bbox": [0, 0, 286, 876]
+                },
+                "ball": {
+                    "bbox": [125, 655, 155, 709]
+                }
+            }
+        }
+    },
+    "event2": {
+        "event_name": "The left person spins the left pole fast",
+        "analysis": "The left person and the ball are visible in all frames. The spinning action of the left pole appears to occur continuously across frames 47 to 54, indicated by the left person's hands remaining on the pole and changes in ball position. Therefore, all frames are included for this event.",
+        "frames": [
+        {
+            "frame_number": 47,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 205, 571] },
+                "ball": { "bbox": [406, 221, 431, 256] }
+            }
+        },
+        {
+            "frame_number": 48,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 200, 557] },
+                "ball": { "bbox": [400, 213, 425, 247] }
+            }
+        },
+        {
+            "frame_number": 49,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 223, 510] },
+                "ball": { "bbox": [402, 226, 426, 260] }
+            }
+        },
+        {
+            "frame_number": 50,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 226, 478] },
+                "ball": { "bbox": [411, 242, 436, 277] }
+            }
+        },
+        {
+            "frame_number": 51,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 211, 455] },
+                "ball": { "bbox": [468, 205, 493, 240] }
+            }
+        },
+        {
+            "frame_number": 52,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 208, 431] },
+                "ball": { "bbox": [466, 201, 491, 236] }
+            }
+        },
+        {
+            "frame_number": 53,
+            "objects": {
+                "left_person": { "bbox": [0, 0, 223, 410] },
+                "ball": { "bbox": [464, 201, 489, 236] }
+            }
+        }
+        ]
+    },
+    "event3": {
+        "event_name": "The white team scores a goal",
+        "analysis": "The white team scores when the ball enters the opponent’s (red team’s) goal. Based on the frame-by-frame inspection, frame 3 shows the ball positioned inside the goal area, indicating a successful goal by the white team. The left person, associated with the white team, is also visible in this frame.",
+        "frames":{
+            "frame_number": 81,
+            "objects": {
+                "left_person": {
+                    "bbox": [0, 0, 171, 606]
+                },
+                "ball": {
+                    "bbox": [436, 832, 473, 894]
+                }
+            }
+        }
+    }
+}
