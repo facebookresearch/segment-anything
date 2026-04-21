@@ -136,10 +136,10 @@ class PromptEncoder(nn.Module):
         embeddings.
 
         Arguments:
-          points (tuple(torch.Tensor, torch.Tensor) or none): point coordinates
+          points (tuple(torch.Tensor, torch.Tensor) or None): point coordinates
             and labels to embed.
-          boxes (torch.Tensor or none): boxes to embed
-          masks (torch.Tensor or none): masks to embed
+          boxes (torch.Tensor or None): boxes to embed
+          masks (torch.Tensor or None): masks to embed
 
         Returns:
           torch.Tensor: sparse embeddings for the points and boxes, with shape

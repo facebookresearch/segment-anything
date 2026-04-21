@@ -21,7 +21,7 @@ class SamPredictor:
     ) -> None:
         """
         Uses SAM to calculate the image embedding for an image, and then
-        allow repeated, efficient mask prediction given prompts.
+        allows repeated, efficient mask prediction given prompts.
 
         Arguments:
           sam_model (Sam): The model to use for mask prediction.
@@ -186,9 +186,9 @@ class SamPredictor:
           point_labels (torch.Tensor or None): A BxN array of labels for the
             point prompts. 1 indicates a foreground point and 0 indicates a
             background point.
-          boxes (np.ndarray or None): A Bx4 array given a box prompt to the
+          boxes (torch.Tensor or None): A Bx4 array given a box prompt to the
             model, in XYXY format.
-          mask_input (np.ndarray): A low resolution mask input to the model, typically
+          mask_input (torch.Tensor): A low resolution mask input to the model, typically
             coming from a previous prediction iteration. Has form Bx1xHxW, where
             for SAM, H=W=256. Masks returned by a previous iteration of the
             predict method do not need further transformation.
