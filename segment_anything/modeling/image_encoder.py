@@ -166,15 +166,18 @@ class Block(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = x
         x = self.norm1(x)
-        # Window partition
+        # Window partition. Capture B explicitly so window_unpartition doesn't
+        # have to recover it from a symbolic floor-divide — torch.export's
+        # shape solver records that divide as a constant-batch guard
+        # (see commit history for details).
         if self.window_size > 0:
-            H, W = x.shape[1], x.shape[2]
+            B, H, W = x.shape[0], x.shape[1], x.shape[2]
             x, pad_hw = window_partition(x, self.window_size)
 
         x = self.attn(x)
         # Reverse window partition
         if self.window_size > 0:
-            x = window_unpartition(x, self.window_size, pad_hw, (H, W))
+            x = window_unpartition(x, self.window_size, pad_hw, (H, W), B)
 
         x = shortcut + x
         x = x + self.mlp(self.norm2(x))
@@ -280,7 +283,11 @@ def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, T
 
 
 def window_unpartition(
-    windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int], hw: Tuple[int, int]
+    windows: torch.Tensor,
+    window_size: int,
+    pad_hw: Tuple[int, int],
+    hw: Tuple[int, int],
+    B: int,
 ) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
@@ -289,13 +296,16 @@ def window_unpartition(
         window_size (int): window size.
         pad_hw (Tuple): padded height and width (Hp, Wp).
         hw (Tuple): original height and width (H, W) before padding.
+        B (int): original batch size, passed in by the caller. Originally recovered
+            via `windows.shape[0] // (Hp * Wp // ws // ws)`, but torch.export's
+            shape solver records the floor-divide as a constant-batch guard,
+            blocking dynamic-batch engines. Passing B keeps the dim symbolic.
 
     Returns:
         x: unpartitioned sequences with [B, H, W, C].
     """
     Hp, Wp = pad_hw
     H, W = hw
-    B = windows.shape[0] // (Hp * Wp // window_size // window_size)
     x = windows.view(B, Hp // window_size, Wp // window_size, window_size, window_size, -1)
     x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, Hp, Wp, -1)
 
