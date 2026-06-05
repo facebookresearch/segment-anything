@@ -166,15 +166,18 @@ class Block(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         shortcut = x
         x = self.norm1(x)
-        # Window partition
+        # Window partition. Capture B explicitly so window_unpartition doesn't
+        # have to recover it from a symbolic floor-divide — torch.export's
+        # shape solver records that divide as a constant-batch guard
+        # (see commit history for details).
         if self.window_size > 0:
-            H, W = x.shape[1], x.shape[2]
+            B, H, W = x.shape[0], x.shape[1], x.shape[2]
             x, pad_hw = window_partition(x, self.window_size)
 
         x = self.attn(x)
         # Reverse window partition
         if self.window_size > 0:
-            x = window_unpartition(x, self.window_size, pad_hw, (H, W))
+            x = window_unpartition(x, self.window_size, pad_hw, (H, W), B)
 
         x = shortcut + x
         x = x + self.mlp(self.norm2(x))
@@ -239,6 +242,21 @@ class Attention(nn.Module):
 
         return x
 
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        rest = dict()
+        for k, v in state_dict.items():
+            if 'rel_pos' in k:
+                my_rel_pos = getattr(self, k[len(prefix):])
+                if my_rel_pos.shape[0] != v.shape[0]:
+                    v = v.unsqueeze(0).permute(0, 2, 1)
+                    v = F.interpolate(v, size=my_rel_pos.shape[0], mode='linear', align_corners=True)
+                    v = v.squeeze(0).T
+                my_rel_pos.data.copy_(v)
+            else:
+                rest[k] = v
+
+        return super()._load_from_state_dict(rest, prefix, local_metadata, False, missing_keys, unexpected_keys, error_msgs)
+
 
 def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, Tuple[int, int]]:
     """
@@ -265,7 +283,11 @@ def window_partition(x: torch.Tensor, window_size: int) -> Tuple[torch.Tensor, T
 
 
 def window_unpartition(
-    windows: torch.Tensor, window_size: int, pad_hw: Tuple[int, int], hw: Tuple[int, int]
+    windows: torch.Tensor,
+    window_size: int,
+    pad_hw: Tuple[int, int],
+    hw: Tuple[int, int],
+    B: int,
 ) -> torch.Tensor:
     """
     Window unpartition into original sequences and removing padding.
@@ -274,13 +296,16 @@ def window_unpartition(
         window_size (int): window size.
         pad_hw (Tuple): padded height and width (Hp, Wp).
         hw (Tuple): original height and width (H, W) before padding.
+        B (int): original batch size, passed in by the caller. Originally recovered
+            via `windows.shape[0] // (Hp * Wp // ws // ws)`, but torch.export's
+            shape solver records the floor-divide as a constant-batch guard,
+            blocking dynamic-batch engines. Passing B keeps the dim symbolic.
 
     Returns:
         x: unpartitioned sequences with [B, H, W, C].
     """
     Hp, Wp = pad_hw
     H, W = hw
-    B = windows.shape[0] // (Hp * Wp // window_size // window_size)
     x = windows.view(B, Hp // window_size, Wp // window_size, window_size, window_size, -1)
     x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, Hp, Wp, -1)
 
