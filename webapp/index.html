@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAM — Pick anything in any image, right in your browser</title>
+  <meta name="description" content="An on-device Segment Anything studio. Upload an image, glide your cursor to pick any object from largest to smallest, freeze it, and remove it — running entirely in your browser on WebGPU." />
+  <meta property="og:title" content="SAM — Segment anything, on-device" />
+  <meta property="og:description" content="Hover to pick. Click to freeze. Remove. Powered by Segment Anything, running 100% in your browser." />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <header class="nav" id="nav">
+    <div class="container">
+      <a class="brand" href="#top" aria-label="SAM home">
+        <img class="logo" src="assets/img/logo.svg" alt="" />
+        <span>SAM<span style="color:var(--faint);font-weight:500">/studio</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#tech">On-device</a>
+        <a href="https://segment-anything.com/" target="_blank" rel="noopener">Research</a>
+      </nav>
+      <div class="nav-cta">
+        <a class="btn btn-primary" href="sam.html">
+          Open SAM Section
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- HERO -->
+    <section class="hero section">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <span class="badge"><span class="dot"></span> Runs <b>100% in your browser</b> · nothing uploaded</span>
+          <h1>Pick <span class="h-grad">anything</span> in any image. Then make it vanish.</h1>
+          <p class="lead">SAM Studio brings Meta's Segment Anything Model to the browser. Glide your cursor and watch objects light up — largest to smallest. Click to freeze your pick, then remove it in one keystroke. No servers, no uploads, no waiting.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="sam.html">
+              Launch the SAM Section
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+          </div>
+          <div class="hero-meta">
+            <div class="stat"><div class="n h-grad">WebGPU</div><div class="l">ON-DEVICE INFERENCE</div></div>
+            <div class="stat"><div class="n h-grad">~40 MB</div><div class="l">MODEL, CACHED ONCE</div></div>
+            <div class="stat"><div class="n h-grad">Real-time</div><div class="l">HOVER-TO-SEGMENT</div></div>
+          </div>
+        </div>
+
+        <div class="reveal" style="transition-delay:.12s">
+          <div class="viewport" aria-hidden="true">
+            <div class="vp-bar"><span class="vp-dot"></span><span class="vp-dot"></span><span class="vp-dot"></span></div>
+            <div class="scene">
+              <span class="blob b1"></span>
+              <span class="blob b2"></span>
+              <span class="blob b3"></span>
+              <span class="blob b4"></span>
+            </div>
+            <div class="reticle"></div>
+            <div class="crosshair"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STRIP -->
+    <div class="strip">
+      <div class="container">
+        <span>Built on <b>Segment Anything (SAM)</b> · Meta AI Research, FAIR</span>
+        <span>·</span>
+        <span>Distilled <b>SlimSAM</b> encoder + decoder</span>
+        <span>·</span>
+        <span>Accelerated with <b>transformers.js</b> &amp; <b>WebGPU</b></span>
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="eyebrow">The flow</span>
+          <h2>Three moves. Zero friction.</h2>
+          <p class="lead">The whole pipeline — the heavy image encoder <em>and</em> the mask decoder — runs locally. Your photo never leaves the tab.</p>
+        </div>
+        <div class="steps">
+          <div class="step reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l4-4 4 4 4-6 4 5" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg></div>
+            <div class="num">STEP 01</div>
+            <h3>Drop an image</h3>
+            <p>Pick any photo. SAM encodes it on your GPU in a couple of seconds — the embedding is computed once and reused for every hover.</p>
+          </div>
+          <div class="step reveal" style="transition-delay:.08s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3l3.5 18 2.6-7.4 7.4-2.6L5 3z" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="num">STEP 02</div>
+            <h3>Hover &amp; scrub</h3>
+            <p>Move the cursor to pick the object under it. Scroll or press <kbd>↑</kbd>/<kbd>↓</kbd> to grow or shrink the selection — from a whole person down to their shoelace.</p>
+          </div>
+          <div class="step reveal" style="transition-delay:.16s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="num">STEP 03</div>
+            <h3>Freeze &amp; remove</h3>
+            <p>Click (or press <kbd>F</kbd>) to lock the mask, then <kbd>Delete</kbd> to cut it out. Undo, reset, or export a clean PNG with the object gone.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="eyebrow">Why it feels different</span>
+          <h2>Studio-grade segmentation, no studio required.</h2>
+        </div>
+        <div class="features">
+          <div class="feature wide reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+            <h3>Truly on-device</h3>
+            <p>The encoder runs in a WebGPU Web Worker; the decoder responds to your cursor in milliseconds. Private by construction — your images stay on your machine.</p>
+          </div>
+          <div class="feature reveal" style="transition-delay:.06s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" stroke-linejoin="round"/></svg></div>
+            <h3>Real-time picking</h3>
+            <p>No "submit" button. The mask tracks your cursor as you explore the scene.</p>
+          </div>
+          <div class="feature reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg></div>
+            <h3>Biggest → smallest</h3>
+            <p>Each point yields nested masks. Scrub the scale to grab the whole car, a wheel, or the valve cap.</p>
+          </div>
+          <div class="feature reveal" style="transition-delay:.06s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M7 13h10"/></svg></div>
+            <h3>Keyboard-first</h3>
+            <p><kbd>F</kbd> freeze · <kbd>Del</kbd> remove · <kbd>⌘Z</kbd> undo · <kbd>↑↓</kbd> scale.</p>
+          </div>
+          <div class="feature wide reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></div>
+            <h3>Clean export</h3>
+            <p>Remove an object and download a transparent PNG, or keep stacking removals with full undo history. Great for quick comps, dataset cleanup, and "what would this look like without…".</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TECH / ON-DEVICE explainer -->
+    <section class="section" id="tech">
+      <div class="container">
+        <div class="sec-head reveal">
+          <span class="eyebrow">Under the hood</span>
+          <h2>One model, split in two — and both halves live in the browser.</h2>
+          <p class="lead">SAM separates a heavy image <strong>encoder</strong> from a featherweight <strong>decoder</strong>. We run a distilled encoder on WebGPU so the embedding is computed once per image; every cursor move only re-runs the tiny decoder. That's why picking feels instant.</p>
+        </div>
+        <div class="features">
+          <div class="feature reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h6v6H9z"/></svg></div>
+            <h3>Encoder · once</h3>
+            <p>Distilled ViT runs on your GPU, turning the image into a reusable embedding.</p>
+          </div>
+          <div class="feature reveal" style="transition-delay:.06s">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></div>
+            <h3>Decoder · per hover</h3>
+            <p>Milliseconds per prompt. Your cursor is the prompt; the mask is the answer.</p>
+          </div>
+          <div class="feature reveal">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20"/><path d="M12 2a15 15 0 010 20 15 15 0 010-20z"/></svg></div>
+            <h3>Zero round-trips</h3>
+            <p>No backend, no API key, no quota. Works offline once the model is cached.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section">
+      <div class="container">
+        <div class="cta reveal">
+          <span class="eyebrow" style="justify-content:center">Ready when you are</span>
+          <h2>Open the <span class="h-grad">SAM Section</span>.</h2>
+          <p>Bring an image. Pick an object. Watch it disappear. The first load fetches the model (~40 MB) and caches it — every visit after is instant.</p>
+          <a class="btn btn-primary btn-lg" href="sam.html">
+            Launch the studio
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="brand"><img class="logo" src="assets/img/logo.svg" alt="" /> SAM<span style="color:var(--faint)">/studio</span></div>
+      <div class="small">A browser interface for <a href="https://segment-anything.com/" target="_blank" rel="noopener">Segment Anything</a>. Model © Meta AI. Demo built for on-device exploration.</div>
+      <div class="small"><a href="sam.html">SAM Section →</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/js/landing.js" defer></script>
+</body>
+</html>

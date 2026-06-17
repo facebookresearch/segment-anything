@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SAM Section — segment, freeze, remove</title>
+  <meta name="description" content="Upload an image and pick any object with your cursor, then remove it — Segment Anything running entirely in your browser." />
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <link rel="stylesheet" href="assets/css/sam.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- TOP BAR -->
+    <header class="appbar">
+      <a class="brand" href="index.html"><img class="logo" src="assets/img/logo.svg" alt="" /> SAM<span style="color:var(--faint);font-weight:500">/section</span></a>
+      <span class="sep"></span>
+      <a class="back" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Home
+      </a>
+      <span class="spacer"></span>
+      <div class="pill is-loading" id="statusPill"><span class="dot"></span><span id="statusText">Booting model…</span></div>
+      <div class="pill" id="devicePill" title="Inference backend"><b id="deviceText">—</b></div>
+      <button class="iconbtn" id="newImageBtn" title="Open another image" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      </button>
+      <button class="iconbtn" id="helpBtn" title="Shortcuts (?)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 115 .2c0 1.6-2.3 2-2.3 3.6M12 17h.01" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <!-- STAGE -->
+    <section class="stage" id="stage">
+
+      <!-- Empty state -->
+      <div class="dropzone" id="dropzone">
+        <div class="art">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l4-4 4 4 4-6 4 5" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+        </div>
+        <h2>Drop an image to begin</h2>
+        <p>Everything runs on your device — your photo never leaves this tab.</p>
+        <div class="actions">
+          <button class="btn btn-primary" id="browseBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+            Choose image
+          </button>
+          <button class="btn btn-ghost" id="pasteHint" title="You can also paste (⌘/Ctrl+V)">or paste from clipboard</button>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        <div class="samples">
+          <span>Or try a sample</span>
+          <div class="sample-row" id="sampleRow"><!-- filled by JS --></div>
+        </div>
+      </div>
+
+      <!-- Canvas viewport -->
+      <div class="canvas-wrap hidden" id="canvasWrap">
+        <canvas id="imageCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
+
+      <!-- HUD -->
+      <div class="hud" id="hud">
+        <div class="row"><span class="swatch"></span> <span id="hudPick">Move the cursor to pick</span></div>
+        <div class="row">Size <b id="hudScale">—</b> · confidence <span class="meter"><i id="hudMeter" style="width:0%"></i></span> <b id="hudScore">—</b></div>
+      </div>
+
+      <!-- Help sheet -->
+      <aside class="help" id="help">
+        <h4>Keyboard &amp; mouse</h4>
+        <dl>
+          <dt><kbd>move</kbd></dt><dd>Pick the object under the cursor</dd>
+          <dt><kbd>scroll</kbd>/<kbd>↑</kbd><kbd>↓</kbd></dt><dd>Grow / shrink (biggest → smallest)</dd>
+          <dt><kbd>click</kbd>/<kbd>F</kbd></dt><dd>Freeze the current selection</dd>
+          <dt><kbd>Del</kbd></dt><dd>Remove the frozen object</dd>
+          <dt><kbd>Esc</kbd></dt><dd>Unfreeze / clear selection</dd>
+          <dt><kbd>⌘</kbd><kbd>Z</kbd></dt><dd>Undo last removal</dd>
+        </dl>
+      </aside>
+
+      <!-- Loading overlay -->
+      <div class="loader" id="loader">
+        <div class="card">
+          <div class="spin"></div>
+          <h3 id="loaderTitle">Preparing SAM</h3>
+          <p id="loaderMsg">Downloading the on-device model…</p>
+          <div class="bar"><i id="loaderBar"></i></div>
+        </div>
+      </div>
+
+      <!-- Bottom dock -->
+      <div class="dock" id="dock">
+        <div class="scale">
+          <button class="tool" id="sizeUp" title="Larger selection (↑)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="lvl" id="scaleLabel">Size —</span>
+          <button class="tool" id="sizeDown" title="Smaller selection (↓)" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l7 7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <span class="vsep"></span>
+        <button class="tool" id="freezeBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke-linecap="round"/></svg>
+          Freeze <span class="k">F</span>
+        </button>
+        <button class="tool primary" id="removeBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Remove <span class="k">Del</span>
+        </button>
+        <span class="vsep"></span>
+        <button class="tool" id="undoBtn" title="Undo (⌘/Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 14l-5-5 5-5M4 9h11a5 5 0 010 10h-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Undo
+        </button>
+        <button class="tool" id="resetBtn" title="Restore original" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 109-9 9 9 0 00-7 3.3M3 3v4h4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Reset
+        </button>
+        <button class="tool" id="downloadBtn" title="Download PNG" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Save
+        </button>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </section>
+  </div>
+
+  <script type="module" src="assets/js/sam-app.js"></script>
+</body>
+</html>
