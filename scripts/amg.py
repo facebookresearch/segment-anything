@@ -126,7 +126,7 @@ amg_settings.add_argument(
 
 amg_settings.add_argument(
     "--crop-overlap-ratio",
-    type=int,
+    type=float,
     default=None,
     help="Larger numbers mean image crops will overlap more.",
 )
