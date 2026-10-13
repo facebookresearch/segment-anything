@@ -143,20 +143,19 @@ def run_export(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
-        with open(output, "wb") as f:
-            print(f"Exporting onnx model to {output}...")
-            torch.onnx.export(
-                onnx_model,
-                tuple(dummy_inputs.values()),
-                f,
-                export_params=True,
-                verbose=False,
-                opset_version=opset,
-                do_constant_folding=True,
-                input_names=list(dummy_inputs.keys()),
-                output_names=output_names,
-                dynamic_axes=dynamic_axes,
-            )
+        print(f"Exporting onnx model to {output}...")
+        torch.onnx.export(
+            onnx_model,
+            tuple(dummy_inputs.values()),
+            output,
+            export_params=True,
+            verbose=False,
+            opset_version=opset,
+            do_constant_folding=True,
+            input_names=list(dummy_inputs.keys()),
+            output_names=output_names,
+            dynamic_axes=dynamic_axes,
+        )
 
     if onnxruntime_exists:
         ort_inputs = {k: to_numpy(v) for k, v in dummy_inputs.items()}

@@ -162,18 +162,15 @@ def calculate_stability_score(
     the predicted mask logits at high and low values.
     """
     # One mask is always contained inside the other.
-    # Save memory by preventing unnecessary cast to torch.int64
-    intersections = (
-        (masks > (mask_threshold + threshold_offset))
-        .sum(-1, dtype=torch.int16)
-        .sum(-1, dtype=torch.int32)
+    # Count both spatial dimensions without narrow integer intermediates.
+    intersections = (masks > (mask_threshold + threshold_offset)).sum(
+        dim=(-1, -2), dtype=torch.int64
     )
-    unions = (
-        (masks > (mask_threshold - threshold_offset))
-        .sum(-1, dtype=torch.int16)
-        .sum(-1, dtype=torch.int32)
-    )
-    return intersections / unions
+    unions = (masks > (mask_threshold - threshold_offset)).sum(dim=(-1, -2), dtype=torch.int64)
+    # Form the ratio before converting to a reduced-precision default dtype.
+    output_dtype = torch.empty(0, device=masks.device).dtype
+    arithmetic_dtype = torch.float64 if output_dtype == torch.float64 else torch.float32
+    return (intersections.to(arithmetic_dtype) / unions.to(arithmetic_dtype)).to(output_dtype)
 
 
 def build_point_grid(n_per_side: int) -> np.ndarray:
