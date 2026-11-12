@@ -90,8 +90,10 @@ def is_box_near_crop_edge(
 
 def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
     box_xywh = deepcopy(box_xyxy)
-    box_xywh[2] = box_xywh[2] - box_xywh[0]
-    box_xywh[3] = box_xywh[3] - box_xywh[1]
+    # Index the last dimension so both a single box (4,) and a batch (N, 4)
+    # convert correctly. box_xywh[2] is the third box of a batch, not xmax.
+    box_xywh[..., 2] = box_xywh[..., 2] - box_xywh[..., 0]
+    box_xywh[..., 3] = box_xywh[..., 3] - box_xywh[..., 1]
     return box_xywh
 
 
