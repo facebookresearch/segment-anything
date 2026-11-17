@@ -12,15 +12,15 @@ Please check out our new release on [**Segment Anything Model 2 (SAM 2)**](https
 
 # Segment Anything
 
-**[Meta AI Research, FAIR](https://ai.facebook.com/research/)**
+**[Meta AI Research, FAIR](https://ai.meta.com/research/)**
 
 [Alexander Kirillov](https://alexander-kirillov.github.io/), [Eric Mintun](https://ericmintun.github.io/), [Nikhila Ravi](https://nikhilaravi.com/), [Hanzi Mao](https://hanzimao.me/), Chloe Rolland, Laura Gustafson, [Tete Xiao](https://tetexiao.com), [Spencer Whitehead](https://www.spencerwhitehead.com/), Alex Berg, Wan-Yen Lo, [Piotr Dollar](https://pdollar.github.io/), [Ross Girshick](https://www.rossgirshick.info/)
 
-[[`Paper`](https://ai.facebook.com/research/publications/segment-anything/)] [[`Project`](https://segment-anything.com/)] [[`Demo`](https://segment-anything.com/demo)] [[`Dataset`](https://segment-anything.com/dataset/index.html)] [[`Blog`](https://ai.facebook.com/blog/segment-anything-foundation-model-image-segmentation/)] [[`BibTeX`](#citing-segment-anything)]
+[[`Paper`](https://ai.meta.com/research/publications/segment-anything/)] [[`Project`](https://aidemos.meta.com/segment-anything/)] [[`Demo`](https://aidemos.meta.com/segment-anything/)] [[`Dataset`](https://ai.meta.com/datasets/segment-anything/)] [[`Blog`](https://ai.meta.com/blog/segment-anything-foundation-model-image-segmentation/)] [[`BibTeX`](#citing-segment-anything)]
 
 ![SAM design](assets/model_diagram.png?raw=true)
 
-The **Segment Anything Model (SAM)** produces high quality object masks from input prompts such as points or boxes, and it can be used to generate masks for all objects in an image. It has been trained on a [dataset](https://segment-anything.com/dataset/index.html) of 11 million images and 1.1 billion masks, and has strong zero-shot performance on a variety of segmentation tasks.
+The **Segment Anything Model (SAM)** produces high quality object masks from input prompts such as points or boxes, and it can be used to generate masks for all objects in an image. It has been trained on a [dataset](https://ai.meta.com/datasets/segment-anything/) of 11 million images and 1.1 billion masks, and has strong zero-shot performance on a variety of segmentation tasks.
 
 <p float="left">
   <img src="assets/masks1.png?raw=true" width="37.25%" />
@@ -86,7 +86,7 @@ See the examples notebooks on [using SAM with prompts](/notebooks/predictor_exam
 
 ## ONNX Export
 
-SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://segment-anything.com/demo). Export the model with
+SAM's lightweight mask decoder can be exported to ONNX format so that it can be run in any environment that supports ONNX runtime, such as in-browser as showcased in the [demo](https://aidemos.meta.com/segment-anything/). Export the model with
 
 ```
 python scripts/export_onnx_model.py --checkpoint <path/to/checkpoint> --model-type <model_type> --output <path/to/output>
@@ -115,7 +115,7 @@ Click the links below to download the checkpoint for the corresponding model typ
 
 ## Dataset
 
-See [here](https://ai.facebook.com/datasets/segment-anything/) for an overview of the datastet. The dataset can be downloaded [here](https://ai.facebook.com/datasets/segment-anything-downloads/). By downloading the datasets you agree that you have read and accepted the terms of the SA-1B Dataset Research License.
+See [here](https://ai.meta.com/datasets/segment-anything/) for an overview of the datastet. The dataset can be downloaded [here](https://ai.meta.com/datasets/segment-anything-downloads/). By downloading the datasets you agree that you have read and accepted the terms of the SA-1B Dataset Research License.
 
 We save masks per image as a json file. It can be loaded as a dictionary in python in the below format.
 
@@ -144,7 +144,7 @@ annotation {
 }
 ```
 
-Image ids can be found in sa_images_ids.txt which can be downloaded using the above [link](https://ai.facebook.com/datasets/segment-anything-downloads/) as well.
+Image ids can be found in sa_images_ids.txt which can be downloaded using the above [link](https://ai.meta.com/datasets/segment-anything-downloads/) as well.
 
 To decode a mask in COCO RLE format into binary:
 
